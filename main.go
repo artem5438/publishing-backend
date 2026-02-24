@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+
+	"publishing-backend/db"
 )
 
 // Модели данных
@@ -115,6 +117,8 @@ var currentOrder = PublishingOrder{
 const minioURL = "http://localhost:9000/publishing-media"
 
 func main() {
+	db.Connect()
+	db.Migrate()
 	r := chi.NewRouter()
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))

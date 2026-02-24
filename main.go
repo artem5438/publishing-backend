@@ -39,15 +39,18 @@ type OrderItem struct {
 	PriceRub int
 	Quantity int
 	ImageKey string
+	Comment  string
 }
 
 type PublishingOrder struct {
-	ID         int
-	Items      []OrderItem
-	ResultText string
+	ID          int
+	Items       []OrderItem
+	ResultText  string
+	BookTitle   string
+	Circulation int
 }
 
-// ─── Вспомогательная функция ────────────────────────────────────────────────
+// ─── Вспомогательные функции ────────────────────────────────────────────────
 
 func strVal(s *string) string {
 	if s == nil {
@@ -88,13 +91,16 @@ func toViewOrder(m models.PublishingOrder) PublishingOrder {
 			PriceRub: ow.Work.PriceRub,
 			Quantity: ow.Quantity,
 			ImageKey: strVal(ow.Work.ImageKey),
+			Comment:  ow.Comment,
 		})
 		total += ow.Work.PriceRub * ow.Quantity
 	}
 	return PublishingOrder{
-		ID:         int(m.ID),
-		Items:      items,
-		ResultText: "Ориентировочная стоимость: " + strconv.Itoa(total) + " ₽",
+		ID:          int(m.ID),
+		Items:       items,
+		ResultText:  "Ориентировочная стоимость: " + strconv.Itoa(total) + " ₽",
+		BookTitle:   m.BookTitle,   // ← добавить
+		Circulation: m.Circulation, // ← добавить
 	}
 }
 
@@ -223,15 +229,63 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── POST /publishing-orders/add-work ────────────────────────────────────────
-// заглушка — реализуем в этапе 7
+// Этап 7: добавление услуги в заявку через ORM
+// Если черновика нет — создаём новый, если услуга уже есть — не дублируем
 
 func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
+	workID, err := strconv.Atoi(r.FormValue("work_id"))
+	if err != nil || workID == 0 {
+		http.Redirect(w, r, "/works", http.StatusSeeOther)
+		return
+	}
+
+	// Ищем существующий черновик пользователя через ORM
+	var order models.PublishingOrder
+	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
+		First(&order)
+
+	// Черновика нет — создаём новый через ORM
+	if res.Error != nil {
+		order = models.PublishingOrder{
+			Status:    models.StatusDraft,
+			CreatorID: creatorID,
+		}
+		db.DB.Create(&order)
+	}
+
+	// Проверяем: вдруг услуга уже есть в заявке (составной уникальный ключ)
+	var existing models.OrderWork
+	check := db.DB.Where("order_id = ? AND work_id = ?", order.ID, workID).
+		First(&existing)
+
+	if check.Error != nil {
+		// Услуги ещё нет — добавляем через ORM
+		orderWork := models.OrderWork{
+			OrderID:  order.ID,
+			WorkID:   uint(workID),
+			Quantity: 1,
+		}
+		db.DB.Create(&orderWork)
+	}
+
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }
 
 // ─── POST /publishing-orders/{id}/delete ─────────────────────────────────────
-// заглушка — реализуем в этапе 8
+// Этап 8: логическое удаление заявки через чистый SQL UPDATE (без ORM — требование курса!)
 
 func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id == 0 {
+		http.Redirect(w, r, "/works", http.StatusSeeOther)
+		return
+	}
+
+	// Намеренно БЕЗ ORM — чистый SQL UPDATE, как требует задание лабы 2
+	db.DB.Exec(
+		"UPDATE publishing_orders SET status = ? WHERE id = ? AND creator_id = ? AND status = ?",
+		models.StatusDeleted, id, creatorID, models.StatusDraft,
+	)
+
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }

@@ -16,6 +16,13 @@
         {{if .Order.Items}}
         <h1>Заявка №{{.Order.ID}}</h1>
 
+        {{if .Order.BookTitle}}
+        <p class="order-meta">📖 Книга: <strong>{{.Order.BookTitle}}</strong></p>
+        {{end}}
+        {{if .Order.Circulation}}
+        <p class="order-meta">📦 Тираж: <strong>{{.Order.Circulation}} экз.</strong></p>
+        {{end}}
+
         {{range .Order.Items}}
         <div class="order-item-card">
             {{if .ImageKey}}
@@ -26,6 +33,9 @@
             <div>
                 <div class="order-item-name">{{.WorkName}}</div>
                 <div class="order-item-qty">Количество: {{.Quantity}}</div>
+                {{if .Comment}}
+                <div class="order-item-comment">💬 {{.Comment}}</div>
+                {{end}}
             </div>
             <div class="order-item-price">{{.PriceRub}} ₽</div>
         </div>
@@ -35,6 +45,10 @@
             <span class="order-result-text">{{.Order.ResultText}}</span>
             <a href="/works" class="btn-submit">Перейти к оформлению</a>
         </div>
+
+        <form method="POST" action="/publishing-orders/{{.Order.ID}}/delete">
+            <button type="submit" class="btn-delete-order">🗑 Удалить заявку</button>
+        </form>
 
         {{else}}
         <h1>Заявка №{{.Order.ID}}</h1>

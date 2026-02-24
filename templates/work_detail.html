@@ -32,7 +32,11 @@
                     <span class="price-value">{{.Work.PriceRub}} ₽</span>
                 </div>
 
-                <a href="/works" class="btn-add">Добавить в заявку</a>
+                <!-- ИСПРАВЛЕНО: теперь настоящая форма POST -->
+                <form method="POST" action="/publishing-orders/add-work">
+                    <input type="hidden" name="work_id" value="{{.Work.ID}}">
+                    <button type="submit" class="btn-add">Добавить в заявку</button>
+                </form>
 
                 <table class="params-table">
                     <tr>

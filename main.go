@@ -7,12 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-
 	"publishing-backend/db"
+	"publishing-backend/models"
+
+	"github.com/go-chi/chi/v5"
 )
 
-// Модели данных
+// ─── View-структуры (шаблоны не меняем!) ───────────────────────────────────
+
 type WorkParams struct {
 	Deadline string
 	Quantity string
@@ -31,12 +33,6 @@ type Work struct {
 	Params      WorkParams
 }
 
-type PublishingOrder struct {
-	ID         int
-	Items      []OrderItem
-	ResultText string
-}
-
 type OrderItem struct {
 	WorkID   int
 	WorkName string
@@ -45,82 +41,75 @@ type OrderItem struct {
 	ImageKey string
 }
 
-// Данные в памяти (лаба 1: без БД)
-var works = []Work{
-	{
-		ID: 1, Name: "Цифровая печать", PriceRub: 5000,
-		Description: "Цифровая печать — оперативный способ выпуска книги тиражом от 1 до 500 экземпляров. Идеально для презентационных, авторских и корпоративных изданий. Печать на оборудовании с разрешением 1200 dpi. Стоимость рассчитывается по тиражу и формату.",
-		ImageKey:    "print-digital.jpg", VideoKey: "print-process.mp4",
-		Tags:   []string{"Быстрый срок", "Малый тираж", "Высокое разрешение"},
-		Params: WorkParams{Deadline: "от 2 дней", Quantity: "1–500 экз.", Unit: "за экземпляр", Format: "A4, A5, A6"},
-	},
-	{
-		ID: 2, Name: "Офсетная печать", PriceRub: 15000,
-		Description: "Офсетная печать — стандарт для крупных тиражей от 1000 экземпляров. Обеспечивает стабильное воспроизведение цвета и высокую скорость производства. Подходит для книг, журналов и каталогов массового распространения.",
-		ImageKey:    "print-offset.jpg", VideoKey: "",
-		Tags:   []string{"Крупный тираж", "Низкая цена за экз.", "Стабильный цвет"},
-		Params: WorkParams{Deadline: "от 10 дней", Quantity: "от 1000 экз.", Unit: "за тираж", Format: "A4, A5, 70×100"},
-	},
-	{
-		ID: 3, Name: "Мягкий переплёт", PriceRub: 800,
-		Description: "Скрепление блока на термоклей или скобу с мягкой обложкой. Экономичный вариант для брошюр, учебных пособий и малотиражных изданий. Обложка печатается на плотной бумаге с возможностью ламинации.",
-		ImageKey:    "soft-cover.jpg", VideoKey: "",
-		Tags:   []string{"Экономично", "Лёгкий вес", "Быстро"},
-		Params: WorkParams{Deadline: "от 1 дня", Quantity: "от 10 экз.", Unit: "за экземпляр", Format: "A4, A5, A6"},
-	},
-	{
-		ID: 4, Name: "Твёрдый переплёт", PriceRub: 2500,
-		Description: "Переплёт в твёрдую обложку с тиснением или суперобложкой. Обеспечивает долговечность и представительный вид издания. Применяется для деловых книг, монографий и подарочных изданий.",
-		ImageKey:    "hard-cover.jpg", VideoKey: "",
-		Tags:   []string{"Долговечность", "Премиум вид", "Тиснение"},
-		Params: WorkParams{Deadline: "от 5 дней", Quantity: "от 50 экз.", Unit: "за экземпляр", Format: "A4, A5, 60×84"},
-	},
-	{
-		ID: 5, Name: "Вёрстка", PriceRub: 3000,
-		Description: "Профессиональная вёрстка в Adobe InDesign по издательским стандартам. Включает расстановку переносов, работу с иллюстрациями, создание оглавления и колонтитулов. Результат — готовый PDF для передачи в печать.",
-		ImageKey:    "layout.jpg", VideoKey: "",
-		Tags:   []string{"InDesign", "PDF для печати", "По ГОСТ"},
-		Params: WorkParams{Deadline: "от 3 дней", Quantity: "любой объём", Unit: "за полосу", Format: "любой"},
-	},
-	{
-		ID: 6, Name: "Корректура", PriceRub: 1500,
-		Description: "Вычитка текста на орфографию, пунктуацию и стилистику. Корректор работает с оригинал-макетом и возвращает исправленный файл с пометками. Обязательный этап перед сдачей рукописи в производство.",
-		ImageKey:    "proofreading.jpg", VideoKey: "layout-demo.mp4",
-		Tags:   []string{"Орфография", "Пунктуация", "Стилистика"},
-		Params: WorkParams{Deadline: "от 2 дней", Quantity: "любой объём", Unit: "за 1000 знаков", Format: "Word / PDF"},
-	},
-	{
-		ID: 7, Name: "Дизайн обложки", PriceRub: 4000,
-		Description: "Разработка уникального дизайна обложки с учётом жанра и целевой аудитории книги. Включает 3 концепции на выбор, правки и подготовку финального файла для печати в CMYK.",
-		ImageKey:    "cover-design.jpg", VideoKey: "",
-		Tags:   []string{"3 концепции", "CMYK", "Уникальный стиль"},
-		Params: WorkParams{Deadline: "от 5 дней", Quantity: "1 обложка", Unit: "за проект", Format: "любой формат"},
-	},
-	{
-		ID: 8, Name: "Присвоение ISBN", PriceRub: 1000,
-		Description: "Оформление и присвоение международного стандартного книжного номера ISBN и индекса ББК. Услуга необходима для реализации книги через магазины и библиотеки. Занимает до 14 рабочих дней через Российскую книжную палату.",
-		ImageKey:    "isbn.jpg", VideoKey: "",
-		Tags:   []string{"Официально", "Для продажи", "Библиотеки"},
-		Params: WorkParams{Deadline: "до 14 дней", Quantity: "1 издание", Unit: "за издание", Format: "—"},
-	},
+type PublishingOrder struct {
+	ID         int
+	Items      []OrderItem
+	ResultText string
 }
 
-var currentOrder = PublishingOrder{
-	ID: 1,
-	Items: []OrderItem{
-		{WorkID: 1, WorkName: "Цифровая печать", PriceRub: 5000, Quantity: 1, ImageKey: "print-digital.jpg"},
-		{WorkID: 5, WorkName: "Вёрстка", PriceRub: 3000, Quantity: 1, ImageKey: "layout.jpg"},
-	},
-	ResultText: "Ориентировочная стоимость: 8 000 ₽",
+// ─── Вспомогательная функция ────────────────────────────────────────────────
+
+func strVal(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
+
+// ─── Маппинг: models.Work (GORM) → Work (view) ─────────────────────────────
+
+func toViewWork(m models.Work) Work {
+	return Work{
+		ID:          int(m.ID),
+		Name:        m.Name,
+		PriceRub:    m.PriceRub,
+		Description: m.Description,
+		ImageKey:    strVal(m.ImageKey),
+		VideoKey:    strVal(m.VideoKey),
+		Tags:        []string{m.Tag1, m.Tag2, m.Tag3},
+		Params: WorkParams{
+			Deadline: m.ParamDeadline,
+			Quantity: m.ParamQuantity,
+			Unit:     m.ParamUnit,
+			Format:   m.ParamFormat,
+		},
+	}
+}
+
+// ─── Маппинг: models.PublishingOrder (GORM) → PublishingOrder (view) ────────
+
+func toViewOrder(m models.PublishingOrder) PublishingOrder {
+	items := []OrderItem{}
+	total := 0
+	for _, ow := range m.Works {
+		items = append(items, OrderItem{
+			WorkID:   int(ow.WorkID),
+			WorkName: ow.Work.Name,
+			PriceRub: ow.Work.PriceRub,
+			Quantity: ow.Quantity,
+			ImageKey: strVal(ow.Work.ImageKey),
+		})
+		total += ow.Work.PriceRub * ow.Quantity
+	}
+	return PublishingOrder{
+		ID:         int(m.ID),
+		Items:      items,
+		ResultText: "Ориентировочная стоимость: " + strconv.Itoa(total) + " ₽",
+	}
+}
+
+// ─── Константы ──────────────────────────────────────────────────────────────
 
 const minioURL = "http://localhost:9000/publishing-media"
+const creatorID = 1 // пока константа, в лабе 4 заменим на сессию
+
+// ─── main ───────────────────────────────────────────────────────────────────
 
 func main() {
 	db.Connect()
 	db.Migrate()
-	r := chi.NewRouter()
 
+	r := chi.NewRouter()
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -129,20 +118,40 @@ func main() {
 	r.Get("/works", worksListHandler)
 	r.Get("/works/{id}", workDetailHandler)
 	r.Get("/publishing-orders/{id}", orderDetailHandler)
+	r.Post("/publishing-orders/add-work", addWorkToOrderHandler)
+	r.Post("/publishing-orders/{id}/delete", deleteOrderHandler)
 
 	log.Println("Сервер запущен: http://localhost:8080")
-	log.Println("Minio консоль: http://localhost:9001")
+	log.Println("Minio консоль:  http://localhost:9001")
 	http.ListenAndServe(":8080", r)
 }
+
+// ─── GET /works ──────────────────────────────────────────────────────────────
 
 func worksListHandler(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))
 
-	filtered := []Work{}
-	for _, work := range works {
-		if query == "" || strings.Contains(strings.ToLower(work.Name), query) {
-			filtered = append(filtered, work)
-		}
+	var dbWorks []models.Work
+	tx := db.DB.Where("status = ?", models.WorkStatusActive)
+	if query != "" {
+		tx = tx.Where("LOWER(name) LIKE ?", "%"+query+"%")
+	}
+	tx.Find(&dbWorks)
+
+	works := []Work{}
+	for _, dw := range dbWorks {
+		works = append(works, toViewWork(dw))
+	}
+
+	var currentOrder models.PublishingOrder
+	cartCount := 0
+	orderID := 0
+	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
+		Preload("Works").
+		First(&currentOrder)
+	if res.Error == nil {
+		cartCount = len(currentOrder.Works)
+		orderID = int(currentOrder.ID)
 	}
 
 	data := struct {
@@ -152,30 +161,25 @@ func worksListHandler(w http.ResponseWriter, r *http.Request) {
 		CartCount      int
 		CurrentOrderID int
 	}{
-		Works:          filtered,
+		Works:          works,
 		Query:          query,
 		MinioURL:       minioURL,
-		CartCount:      len(currentOrder.Items),
-		CurrentOrderID: currentOrder.ID,
+		CartCount:      cartCount,
+		CurrentOrderID: orderID,
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/works_list.html"))
 	tmpl.Execute(w, data)
 }
 
+// ─── GET /works/{id} ─────────────────────────────────────────────────────────
+
 func workDetailHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idStr)
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
-	var found *Work
-	for i := range works {
-		if works[i].ID == id {
-			found = &works[i]
-			break
-		}
-	}
-
-	if found == nil {
+	var dbWork models.Work
+	res := db.DB.Where("id = ? AND status = ?", id, models.WorkStatusActive).First(&dbWork)
+	if res.Error != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -184,7 +188,7 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 		Work     Work
 		MinioURL string
 	}{
-		Work:     *found,
+		Work:     toViewWork(dbWork),
 		MinioURL: minioURL,
 	}
 
@@ -192,11 +196,16 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, data)
 }
 
-func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idStr)
+// ─── GET /publishing-orders/{id} ─────────────────────────────────────────────
 
-	if currentOrder.ID != id {
+func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	var dbOrder models.PublishingOrder
+	res := db.DB.Where("id = ? AND status != ?", id, models.StatusDeleted).
+		Preload("Works.Work").
+		First(&dbOrder)
+	if res.Error != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -205,10 +214,24 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 		Order    PublishingOrder
 		MinioURL string
 	}{
-		Order:    currentOrder,
+		Order:    toViewOrder(dbOrder),
 		MinioURL: minioURL,
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/order_detail.html"))
 	tmpl.Execute(w, data)
+}
+
+// ─── POST /publishing-orders/add-work ────────────────────────────────────────
+// заглушка — реализуем в этапе 7
+
+func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/works", http.StatusSeeOther)
+}
+
+// ─── POST /publishing-orders/{id}/delete ─────────────────────────────────────
+// заглушка — реализуем в этапе 8
+
+func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Work.Name}}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <a href="/works" class="header-logo">МИС∞</a>
+        <a href="/works" class="home-btn">🏠 Главная</a>
+    </header>
+
+    <div class="detail-page">
+        <a href="/works" class="back-link">← Все работы</a>
+
+        <div class="detail-card">
+            <div>
+                {{if .Work.ImageKey}}
+                <img src="{{.MinioURL}}/{{.Work.ImageKey}}" alt="{{.Work.Name}}" class="detail-image">
+                {{else}}
+                <div class="detail-image-placeholder">фото услуги</div>
+                {{end}}
+            </div>
+            <div class="detail-info">
+                <h1>{{.Work.Name}}</h1>
+                <p class="detail-subtitle">{{.Work.Description}}</p>
+
+                <div class="price-row">
+                    <span class="price-label">Стоимость</span>
+                    <span class="price-value">{{.Work.PriceRub}} ₽</span>
+                </div>
+
+                <a href="/works" class="btn-add">Добавить в заявку</a>
+
+                <table class="params-table">
+                    <tr>
+                        <th>Срок</th>
+                        <th>Тираж</th>
+                        <th>Единица</th>
+                        <th>Формат</th>
+                    </tr>
+                    <tr>
+                        <td>{{.Work.Params.Deadline}}</td>
+                        <td>{{.Work.Params.Quantity}}</td>
+                        <td>{{.Work.Params.Unit}}</td>
+                        <td>{{.Work.Params.Format}}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-lower">
+            <h2>Преимущества услуги</h2>
+            <div class="tags-row">
+                {{range .Work.Tags}}
+                <span class="tag">{{.}}</span>
+                {{end}}
+            </div>
+            <div class="description-tab">Описание</div>
+            <div class="description-text">
+                <strong>{{.Work.Name}} — профессиональная работа издательства.</strong>
+                <p>{{.Work.Description}}</p>
+            </div>
+        </div>
+
+        {{if .Work.VideoKey}}
+        <div class="video-block">
+            <h3>Видео о работе</h3>
+            <video autoplay muted loop>
+                <source src="{{.MinioURL}}/{{.Work.VideoKey}}" type="video/mp4">
+            </video>
+        </div>
+        {{else}}
+        <div class="video-block">
+            <h3>Видео о работе</h3>
+            <div class="video-placeholder">[ВИДЕО: ПРОЦЕСС ПЕЧАТИ]</div>
+        </div>
+        {{end}}
+    </div>
+</body>
+</html>

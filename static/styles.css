@@ -1,0 +1,486 @@
+/* Цвета проекта:
+   #FFFFFF — белый (карточки, шапка)
+   #1C1C1C — тёмный (текст, кнопки)
+   #F5F5F5 — светло-серый (фон страницы)
+*/
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #F5F5F5;
+    color: #1C1C1C;
+}
+
+/* ===== ШАПКА ===== */
+header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E8E8E8;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-logo {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-decoration: none;
+    color: #1C1C1C;
+}
+
+.home-btn {
+    text-decoration: none;
+    color: #1C1C1C;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.home-btn:hover {
+    opacity: 0.6;
+}
+
+/* ===== СТРАНИЦА СПИСКА РАБОТ ===== */
+.works-page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 40px;
+}
+
+.works-page h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 32px;
+    color: #1C1C1C;
+}
+
+.search-form {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+    gap: 10px;
+}
+
+.search-form input {
+    width: 340px;
+    padding: 10px 16px;
+    border: 1px solid #D0D0D0;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #FFFFFF;
+    color: #1C1C1C;
+}
+
+.search-form button {
+    padding: 10px 20px;
+    background: #1C1C1C;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.search-form button:hover {
+    opacity: 0.8;
+}
+
+/* Карточка текущей заявки */
+.current-order-banner {
+    background: #FFFFFF;
+    border: 1px solid #E8E8E8;
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.current-order-banner p {
+    font-size: 14px;
+    color: #666666;
+}
+
+.current-order-banner strong {
+    color: #1C1C1C;
+}
+
+/* Сетка карточек */
+.works-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 24px;
+}
+
+.work-card {
+    background: #FFFFFF;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.work-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateY(-6px);        
+    transition: transform 0.2s ease, box-shadow 0.2s ease; 
+}
+
+
+.work-card-image {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    display: block;
+    background: #E8E8E8;
+}
+
+.work-card-image-placeholder {
+    width: 100%;
+    aspect-ratio: 2/3;
+    background: #E8E8E8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #999;
+}
+
+.work-card-body {
+    padding: 12px;
+}
+
+.work-card-name {
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    color: #1C1C1C;
+    min-height: 36px;
+}
+
+.work-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.work-card-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1C1C1C;
+}
+
+.btn-detail {
+    font-size: 13px;
+    color: #1450A3;
+    text-decoration: none;
+    padding: 4px 0;
+}
+
+.btn-detail:hover {
+    text-decoration: underline;
+}
+
+/* ===== СТРАНИЦА ДЕТАЛЬНОЙ УСЛУГИ ===== */
+.detail-page {
+    max-width: 1000px;
+    margin: 32px auto;
+    padding: 0 40px;
+}
+
+.detail-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 32px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 40px;
+    margin-bottom: 24px;
+}
+
+.detail-image {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #E8E8E8;
+}
+
+.detail-image-placeholder {
+    width: 100%;
+    aspect-ratio: 2/3;
+    background: #E8E8E8;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #999;
+}
+
+.detail-info h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.detail-subtitle {
+    font-size: 15px;
+    color: #666666;
+    margin-bottom: 24px;
+}
+
+.price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #D0D0D0;
+    border-radius: 4px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+}
+
+.price-label {
+    font-size: 14px;
+    color: #666666;
+}
+
+.price-value {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.btn-add {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #1C1C1C;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    font-size: 15px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    margin-bottom: 24px;
+}
+
+.btn-add:hover {
+    opacity: 0.85;
+}
+
+.params-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.params-table th {
+    text-align: left;
+    color: #999999;
+    font-weight: 400;
+    padding: 4px 8px 4px 0;
+    border-bottom: 1px solid #E8E8E8;
+}
+
+.params-table td {
+    padding: 6px 8px 6px 0;
+    color: #1C1C1C;
+    border-bottom: 1px solid #F0F0F0;
+}
+
+/* Нижний блок детальной страницы */
+.detail-lower {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.detail-lower h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+}
+
+.tags-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.tag {
+    border: 1px solid #E8C547;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #1C1C1C;
+}
+
+.description-tab {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #1C1C1C;
+    display: inline-block;
+    padding-bottom: 4px;
+    margin-bottom: 20px;
+}
+
+.description-text strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+.description-text p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #444444;
+}
+
+/* Видео блок */
+.video-block {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.video-block h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.video-block video {
+    width: 100%;
+    border-radius: 4px;
+}
+
+.video-placeholder {
+    width: 100%;
+    height: 200px;
+    background: #1C1C1C;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.back-link {
+    display: inline-block;
+    color: #1450A3;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 32px;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+/* ===== СТРАНИЦА ЗАЯВКИ ===== */
+.order-page {
+    max-width: 900px;
+    margin: 32px auto;
+    padding: 0 40px;
+}
+
+.order-page h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.order-empty {
+    text-align: center;
+    padding: 60px;
+    color: #999999;
+    font-size: 16px;
+    background: #FFFFFF;
+    border-radius: 8px;
+}
+
+.order-item-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 12px;
+    border: 1px solid #E8E8E8;
+}
+
+.order-item-img {
+    width: 80px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #E8E8E8;
+}
+
+.order-item-img-placeholder {
+    width: 80px;
+    height: 110px;
+    background: #E8E8E8;
+    border-radius: 4px;
+}
+
+.order-item-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.order-item-qty {
+    font-size: 13px;
+    color: #666666;
+}
+
+.order-item-price {
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.order-result {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 24px;
+    margin-top: 16px;
+    border: 1px solid #E8E8E8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-result-text {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.btn-submit {
+    padding: 14px 32px;
+    background: #1C1C1C;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    font-size: 15px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-submit:hover { opacity: 0.85; }

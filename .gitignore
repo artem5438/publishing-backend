@@ -1,0 +1,13 @@
+# Бинарник Go
+publishing-backend
+*.exe
+
+# Переменные окружения
+.env
+
+# Системные файлы macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

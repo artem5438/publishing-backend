@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Работы издательства</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <a href="/works" class="header-logo">МИС∞</a>
+        <a href="/works" class="home-btn">🏠 Главная</a>
+    </header>
+
+    <div class="works-page">
+        <h1>Работы издательства</h1>
+
+        <form method="GET" action="/works" class="search-form">
+            <input type="text" name="query" placeholder="Поиск работ..." value="{{.Query}}">
+            <button type="submit">Найти</button>
+        </form>
+
+        {{if gt .CartCount 0}}
+        <div class="current-order-banner">
+            <p>В текущей заявке: <strong>{{.CartCount}} услуг(и)</strong></p>
+            <a href="/publishing-orders/{{.CurrentOrderID}}" class="btn-detail">Просмотреть заявку →</a>
+        </div>
+        {{end}}
+
+        <div class="works-grid">
+            {{range .Works}}
+            <div class="work-card">
+                {{if .ImageKey}}
+                <img src="{{$.MinioURL}}/{{.ImageKey}}" alt="{{.Name}}" class="work-card-image">
+                {{else}}
+                <div class="work-card-image-placeholder">нет фото</div>
+                {{end}}
+                <div class="work-card-body">
+                    <div class="work-card-name">{{.Name}}</div>
+                    <div class="work-card-footer">
+                        <span class="work-card-price">{{.PriceRub}} ₽</span>
+                        <a href="/works/{{.ID}}" class="btn-detail">Подробнее</a>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>

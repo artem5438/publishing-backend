@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявка №{{.Order.ID}}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <a href="/works" class="header-logo">МИС∞</a>
+        <a href="/works" class="home-btn">🏠 Главная</a>
+    </header>
+
+    <div class="order-page">
+        {{if .Order.Items}}
+        <h1>Заявка №{{.Order.ID}}</h1>
+
+        {{range .Order.Items}}
+        <div class="order-item-card">
+            {{if .ImageKey}}
+            <img src="{{$.MinioURL}}/{{.ImageKey}}" alt="{{.WorkName}}" class="order-item-img">
+            {{else}}
+            <div class="order-item-img-placeholder"></div>
+            {{end}}
+            <div>
+                <div class="order-item-name">{{.WorkName}}</div>
+                <div class="order-item-qty">Количество: {{.Quantity}}</div>
+            </div>
+            <div class="order-item-price">{{.PriceRub}} ₽</div>
+        </div>
+        {{end}}
+
+        <div class="order-result">
+            <span class="order-result-text">{{.Order.ResultText}}</span>
+            <a href="/works" class="btn-submit">Перейти к оформлению</a>
+        </div>
+
+        {{else}}
+        <h1>Заявка №{{.Order.ID}}</h1>
+        <div class="order-empty">
+            Добавьте что-нибудь в заявку<br><br>
+            <a href="/works" class="btn-detail">Просмотреть работы →</a>
+        </div>
+        {{end}}
+    </div>
+</body>
+</html>

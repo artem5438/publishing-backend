@@ -32,7 +32,6 @@
                     <span class="price-value">{{.Work.PriceRub}} ₽</span>
                 </div>
 
-                <!-- ИСПРАВЛЕНО: теперь настоящая форма POST -->
                 <form method="POST" action="/publishing-orders/add-work">
                     <input type="hidden" name="work_id" value="{{.Work.ID}}">
                     <button type="submit" class="btn-add">Добавить в заявку</button>
@@ -72,7 +71,7 @@
         {{if .Work.VideoKey}}
         <div class="video-block">
             <h3>Видео о работе</h3>
-            <video autoplay muted loop>
+            <video autoplay muted loop playsinline preload="auto">
                 <source src="{{.MinioURL}}/{{.Work.VideoKey}}" type="video/mp4">
             </video>
         </div>

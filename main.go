@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// ─── View-структуры (шаблоны не меняем!) ───────────────────────────────────
+// ─── View-структуры ───────────────────────────────────
 
 type WorkParams struct {
 	Deadline string
@@ -99,15 +99,15 @@ func toViewOrder(m models.PublishingOrder) PublishingOrder {
 		ID:          int(m.ID),
 		Items:       items,
 		ResultText:  "Ориентировочная стоимость: " + strconv.Itoa(total) + " ₽",
-		BookTitle:   m.BookTitle,   // ← добавить
-		Circulation: m.Circulation, // ← добавить
+		BookTitle:   m.BookTitle,
+		Circulation: m.Circulation,
 	}
 }
 
 // ─── Константы ──────────────────────────────────────────────────────────────
 
 const minioURL = "http://localhost:9000/publishing-media"
-const creatorID = 1 // пока константа, в лабе 4 заменим на сессию
+const creatorID = 1
 
 // ─── main ───────────────────────────────────────────────────────────────────
 
@@ -229,8 +229,6 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── POST /publishing-orders/add-work ────────────────────────────────────────
-// Этап 7: добавление услуги в заявку через ORM
-// Если черновика нет — создаём новый, если услуга уже есть — не дублируем
 
 func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 	workID, err := strconv.Atoi(r.FormValue("work_id"))
@@ -272,7 +270,7 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── POST /publishing-orders/{id}/delete ─────────────────────────────────────
-// Этап 8: логическое удаление заявки через чистый SQL UPDATE (без ORM — требование курса!)
+// удаление заявки через чистый SQL UPDATE
 
 func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -281,7 +279,6 @@ func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Намеренно БЕЗ ORM — чистый SQL UPDATE, как требует задание лабы 2
 	db.DB.Exec(
 		"UPDATE publishing_orders SET status = ? WHERE id = ? AND creator_id = ? AND status = ?",
 		models.StatusDeleted, id, creatorID, models.StatusDraft,

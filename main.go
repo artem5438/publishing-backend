@@ -129,7 +129,10 @@ func main() {
 
 	log.Println("Сервер запущен: http://localhost:8080")
 	log.Println("Minio консоль:  http://localhost:9001")
-	http.ListenAndServe(":8080", r)
+
+	if err := http.ListenAndServe(":8080", r); err != nil {
+		log.Fatal("Ошибка сервера:", err)
+	}
 }
 
 // ─── GET /works ──────────────────────────────────────────────────────────────
@@ -175,7 +178,9 @@ func worksListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/works_list.html"))
-	tmpl.Execute(w, data)
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Println("Ошибка шаблона:", err)
+	}
 }
 
 // ─── GET /works/{id} ─────────────────────────────────────────────────────────
@@ -199,7 +204,9 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/work_detail.html"))
-	tmpl.Execute(w, data)
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Println("Ошибка шаблона:", err)
+	}
 }
 
 // ─── GET /publishing-orders/{id} ─────────────────────────────────────────────
@@ -225,7 +232,10 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/order_detail.html"))
-	tmpl.Execute(w, data)
+	// ✅ ИСПРАВЛЕНИЕ 4
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Println("Ошибка шаблона:", err)
+	}
 }
 
 // ─── POST /publishing-orders/add-work ────────────────────────────────────────
@@ -237,12 +247,10 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ищем существующий черновик пользователя через ORM
 	var order models.PublishingOrder
 	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
 		First(&order)
 
-	// Черновика нет — создаём новый через ORM
 	if res.Error != nil {
 		order = models.PublishingOrder{
 			Status:    models.StatusDraft,
@@ -251,13 +259,11 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 		db.DB.Create(&order)
 	}
 
-	// Проверяем: вдруг услуга уже есть в заявке (составной уникальный ключ)
 	var existing models.OrderWork
 	check := db.DB.Where("order_id = ? AND work_id = ?", order.ID, workID).
 		First(&existing)
 
 	if check.Error != nil {
-		// Услуги ещё нет — добавляем через ORM
 		orderWork := models.OrderWork{
 			OrderID:  order.ID,
 			WorkID:   uint(workID),

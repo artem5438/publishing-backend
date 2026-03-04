@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -126,6 +127,7 @@ func main() {
 	r.Get("/publishing-orders/{id}", orderDetailHandler)
 	r.Post("/publishing-orders/add-work", addWorkToOrderHandler)
 	r.Post("/publishing-orders/{id}/delete", deleteOrderHandler)
+	r.Post("/publishing-orders/{id}/update-work", updateWorkQuantityHandler)
 
 	log.Println("Сервер запущен: http://localhost:8080")
 	log.Println("Minio консоль:  http://localhost:9001")
@@ -291,4 +293,36 @@ func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
+}
+
+// ─── POST /publishing-orders/{id}/update-work ────────────────────────────────
+// изменение количества позиции в заказе (delta: +1 или -1)
+
+func updateWorkQuantityHandler(w http.ResponseWriter, r *http.Request) {
+	orderID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || orderID == 0 {
+		http.Redirect(w, r, "/works", http.StatusSeeOther)
+		return
+	}
+
+	workID, err := strconv.Atoi(r.FormValue("work_id"))
+	if err != nil || workID == 0 {
+		http.Redirect(w, r, fmt.Sprintf("/publishing-orders/%d", orderID), http.StatusSeeOther)
+		return
+	}
+
+	delta, _ := strconv.Atoi(r.FormValue("delta"))
+
+	var ow models.OrderWork
+	res := db.DB.Where("order_id = ? AND work_id = ?", orderID, workID).First(&ow)
+	if res.Error == nil {
+		newQty := ow.Quantity + delta
+		if newQty <= 0 {
+			db.DB.Delete(&ow) // убираем позицию из корзины
+		} else {
+			db.DB.Model(&ow).Update("quantity", newQty)
+		}
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/publishing-orders/%d", orderID), http.StatusSeeOther)
 }

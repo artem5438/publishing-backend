@@ -34,17 +34,31 @@ header {
     color: #1C1C1C;
 }
 
+/* Группа кнопок справа */
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Кнопка "Главная" — теперь такой же стиль как корзина */
 .home-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     text-decoration: none;
     color: #1C1C1C;
     font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid #1C1C1C;
+    border-radius: 4px;
+    transition: all 0.2s;
 }
 
 .home-btn:hover {
-    opacity: 0.6;
+    background: #1C1C1C;
+    color: #FFFFFF;
+    opacity: 1;
 }
 
 /* ===== СТРАНИЦА СПИСКА РАБОТ ===== */
@@ -511,4 +525,90 @@ header {
     font-size: 13px;
     color: #999;
     margin-top: 4px;
+}
+/* ===== КОРЗИНА В ХЕДЕРЕ ===== */
+.cart-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #1C1C1C;
+    font-size: 14px;
+    padding: 8px 16px;
+    border: 1px solid #1C1C1C;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.cart-btn:hover {
+    background: #1C1C1C;
+    color: #FFFFFF;
+}
+
+.cart-empty {
+    color: #999999;
+    border-color: #D0D0D0;
+    cursor: default;
+}
+
+.cart-empty:hover {
+    background: transparent;
+    color: #999999;
+}
+
+.cart-badge {
+    background: #1C1C1C;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    line-height: 1.4;
+    transition: background 0.2s;
+}
+
+.cart-btn:hover .cart-badge {
+    background: #FFFFFF;
+    color: #1C1C1C;
+}
+
+/* ===== КНОПКИ КОЛИЧЕСТВА В КОРЗИНЕ ===== */
+.order-item-qty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #666666;
+    margin-top: 4px;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    background: #F5F5F5;
+    color: #1C1C1C;
+    border: 1px solid #D0D0D0;
+    border-radius: 4px;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.qty-btn:hover {
+    background: #1C1C1C;
+    color: #FFFFFF;
+    border-color: #1C1C1C;
+}
+
+.qty-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1C1C1C;
+    min-width: 20px;
+    text-align: center;
 }

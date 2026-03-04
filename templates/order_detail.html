@@ -9,7 +9,9 @@
 <body>
     <header>
         <a href="/works" class="header-logo">МИС∞</a>
-        <a href="/works" class="home-btn">🏠 Главная</a>
+        <nav class="header-nav">
+            <a href="/works" class="home-btn">🏠 Главная</a>
+        </nav>
     </header>
 
     <div class="order-page">
@@ -32,27 +34,24 @@
             {{end}}
             <div>
                 <div class="order-item-name">{{.WorkName}}</div>
-
-        <!-- НОВЫЙ БЛОК КОЛИЧЕСТВА -->
-        <div class="order-item-qty">
-            <form method="POST" action="/publishing-orders/{{$.Order.ID}}/update-work" style="display:inline">
-                <input type="hidden" name="work_id" value="{{.WorkID}}">
-                <input type="hidden" name="delta" value="-1">
-                <button type="submit" class="qty-btn">−</button>
-            </form>
-            <span class="qty-value">{{.Quantity}}</span>
-            <form method="POST" action="/publishing-orders/{{$.Order.ID}}/update-work" style="display:inline">
-                <input type="hidden" name="work_id" value="{{.WorkID}}">
-                <input type="hidden" name="delta" value="1">
-                <button type="submit" class="qty-btn">+</button>
-            </form>
-        </div>
-
-        {{if .Comment}}
-        <div class="order-item-comment">💬 {{.Comment}}</div>
-        {{end}}
-        </div>
-    <div class="order-item-price">{{.PriceRub}} ₽</div>
+                <div class="order-item-qty">
+                    <form method="POST" action="/publishing-orders/{{$.Order.ID}}/update-work" style="display:inline">
+                        <input type="hidden" name="work_id" value="{{.WorkID}}">
+                        <input type="hidden" name="delta" value="-1">
+                        <button type="submit" class="qty-btn">−</button>
+                    </form>
+                    <span class="qty-value">{{.Quantity}}</span>
+                    <form method="POST" action="/publishing-orders/{{$.Order.ID}}/update-work" style="display:inline">
+                        <input type="hidden" name="work_id" value="{{.WorkID}}">
+                        <input type="hidden" name="delta" value="1">
+                        <button type="submit" class="qty-btn">+</button>
+                    </form>
+                </div>
+                {{if .Comment}}
+                <div class="order-item-comment">💬 {{.Comment}}</div>
+                {{end}}
+            </div>
+            <div class="order-item-price">{{.PriceRub}} ₽</div>
         </div>
         {{end}}
 

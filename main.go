@@ -110,6 +110,20 @@ func toViewOrder(m models.PublishingOrder) PublishingOrder {
 const minioURL = "http://localhost:9000/publishing-media"
 const creatorID = 1
 
+// ─── Вспомогательная функция: данные корзины для хедера ─────────────────────
+
+func getCartInfo() (cartCount int, orderID int) {
+	var currentOrder models.PublishingOrder
+	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
+		Preload("Works").
+		First(&currentOrder)
+	if res.Error == nil {
+		cartCount = len(currentOrder.Works)
+		orderID = int(currentOrder.ID)
+	}
+	return
+}
+
 // ─── main ───────────────────────────────────────────────────────────────────
 
 func main() {
@@ -154,16 +168,7 @@ func worksListHandler(w http.ResponseWriter, r *http.Request) {
 		works = append(works, toViewWork(dw))
 	}
 
-	var currentOrder models.PublishingOrder
-	cartCount := 0
-	orderID := 0
-	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
-		Preload("Works").
-		First(&currentOrder)
-	if res.Error == nil {
-		cartCount = len(currentOrder.Works)
-		orderID = int(currentOrder.ID)
-	}
+	cartCount, orderID := getCartInfo()
 
 	data := struct {
 		Works          []Work
@@ -197,12 +202,18 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cartCount, orderID := getCartInfo()
+
 	data := struct {
-		Work     Work
-		MinioURL string
+		Work           Work
+		MinioURL       string
+		CartCount      int
+		CurrentOrderID int
 	}{
-		Work:     toViewWork(dbWork),
-		MinioURL: minioURL,
+		Work:           toViewWork(dbWork),
+		MinioURL:       minioURL,
+		CartCount:      cartCount,
+		CurrentOrderID: orderID,
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/work_detail.html"))
@@ -234,7 +245,6 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/order_detail.html"))
-	// ✅ ИСПРАВЛЕНИЕ 4
 	if err := tmpl.Execute(w, data); err != nil {
 		log.Println("Ошибка шаблона:", err)
 	}
@@ -278,7 +288,6 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── POST /publishing-orders/{id}/delete ─────────────────────────────────────
-// удаление заявки через чистый SQL UPDATE
 
 func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -296,7 +305,6 @@ func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── POST /publishing-orders/{id}/update-work ────────────────────────────────
-// изменение количества позиции в заказе (delta: +1 или -1)
 
 func updateWorkQuantityHandler(w http.ResponseWriter, r *http.Request) {
 	orderID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -318,7 +326,7 @@ func updateWorkQuantityHandler(w http.ResponseWriter, r *http.Request) {
 	if res.Error == nil {
 		newQty := ow.Quantity + delta
 		if newQty <= 0 {
-			db.DB.Delete(&ow) // убираем позицию из корзины
+			db.DB.Delete(&ow)
 		} else {
 			db.DB.Model(&ow).Update("quantity", newQty)
 		}

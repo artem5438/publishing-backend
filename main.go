@@ -8,13 +8,14 @@ import (
 	"strconv"
 	"strings"
 
+	"publishing-backend/api"
 	"publishing-backend/db"
 	"publishing-backend/models"
 
 	"github.com/go-chi/chi/v5"
 )
 
-// ─── View-структуры ───────────────────────────────────
+// ─── View-структуры (SSR) ────────────────────────────────────────────────────
 
 type WorkParams struct {
 	Deadline string
@@ -51,7 +52,7 @@ type PublishingOrder struct {
 	Circulation int
 }
 
-// ─── Вспомогательные функции ────────────────────────────────────────────────
+// ─── Вспомогательные функции (SSR) ──────────────────────────────────────────
 
 func strVal(s *string) string {
 	if s == nil {
@@ -59,8 +60,6 @@ func strVal(s *string) string {
 	}
 	return *s
 }
-
-// ─── Маппинг: models.Work (GORM) → Work (view) ─────────────────────────────
 
 func toViewWork(m models.Work) Work {
 	return Work{
@@ -79,8 +78,6 @@ func toViewWork(m models.Work) Work {
 		},
 	}
 }
-
-// ─── Маппинг: models.PublishingOrder (GORM) → PublishingOrder (view) ────────
 
 func toViewOrder(m models.PublishingOrder) PublishingOrder {
 	items := []OrderItem{}
@@ -105,12 +102,10 @@ func toViewOrder(m models.PublishingOrder) PublishingOrder {
 	}
 }
 
-// ─── Константы ──────────────────────────────────────────────────────────────
+// ─── Константы (SSR) ────────────────────────────────────────────────────────
 
 const minioURL = "http://localhost:9000/publishing-media"
 const creatorID = 1
-
-// ─── Вспомогательная функция: данные корзины для хедера ─────────────────────
 
 func getCartInfo() (cartCount int, orderID int) {
 	var currentOrder models.PublishingOrder
@@ -124,7 +119,7 @@ func getCartInfo() (cartCount int, orderID int) {
 	return
 }
 
-// ─── main ───────────────────────────────────────────────────────────────────
+// ─── main ────────────────────────────────────────────────────────────────────
 
 func main() {
 	db.Connect()
@@ -133,6 +128,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
+	// ── SSR маршруты (лаб. 1–2) ──────────────────────────────────────────────
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/works", http.StatusSeeOther)
 	})
@@ -143,7 +139,35 @@ func main() {
 	r.Post("/publishing-orders/{id}/delete", deleteOrderHandler)
 	r.Post("/publishing-orders/{id}/update-work", updateWorkQuantityHandler)
 
+	// ── REST API маршруты (лаб. 3) ────────────────────────────────────────────
+	r.Route("/api", func(r chi.Router) {
+		// Домен: услуги
+		r.Get("/works", api.GetWorks)
+		r.Get("/works/{id}", api.GetWork)
+		r.Post("/works", api.CreateWork)
+
+		// Домен: корзина и заявки
+		r.Get("/publishing-orders/cart", api.GetCart)
+		r.Get("/publishing-orders", api.GetOrders)
+		r.Get("/publishing-orders/{id}", api.GetOrder)
+		r.Put("/publishing-orders/{id}", api.UpdateOrder)
+		r.Put("/publishing-orders/{id}/submit", api.SubmitOrder)
+		r.Put("/publishing-orders/{id}/moderate", api.ModerateOrder)
+		r.Delete("/publishing-orders/{id}", api.DeleteOrder)
+
+		// Домен: М-М (услуги в заявке)
+		r.Post("/publishing-orders/{id}/works", api.AddWorkToOrder)
+		r.Put("/publishing-orders/{id}/works/{workId}", api.UpdateOrderWork)
+		r.Delete("/publishing-orders/{id}/works/{workId}", api.RemoveWorkFromOrder)
+
+		// Домен: пользователи
+		r.Post("/auth/register", api.Register)
+		r.Post("/auth/login", api.Login)
+		r.Post("/auth/logout", api.Logout)
+	})
+
 	log.Println("Сервер запущен: http://localhost:8080")
+	log.Println("API:            http://localhost:8080/api")
 	log.Println("Minio консоль:  http://localhost:9001")
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
@@ -151,7 +175,7 @@ func main() {
 	}
 }
 
-// ─── GET /works ──────────────────────────────────────────────────────────────
+// ─── SSR: GET /works ─────────────────────────────────────────────────────────
 
 func worksListHandler(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))
@@ -190,7 +214,7 @@ func worksListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ─── GET /works/{id} ─────────────────────────────────────────────────────────
+// ─── SSR: GET /works/{id} ────────────────────────────────────────────────────
 
 func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
@@ -222,7 +246,7 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ─── GET /publishing-orders/{id} ─────────────────────────────────────────────
+// ─── SSR: GET /publishing-orders/{id} ───────────────────────────────────────
 
 func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
@@ -250,7 +274,7 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ─── POST /publishing-orders/add-work ────────────────────────────────────────
+// ─── SSR: POST /publishing-orders/add-work ───────────────────────────────────
 
 func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 	workID, err := strconv.Atoi(r.FormValue("work_id"))
@@ -287,7 +311,7 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }
 
-// ─── POST /publishing-orders/{id}/delete ─────────────────────────────────────
+// ─── SSR: POST /publishing-orders/{id}/delete ────────────────────────────────
 
 func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -304,7 +328,7 @@ func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }
 
-// ─── POST /publishing-orders/{id}/update-work ────────────────────────────────
+// ─── SSR: POST /publishing-orders/{id}/update-work ───────────────────────────
 
 func updateWorkQuantityHandler(w http.ResponseWriter, r *http.Request) {
 	orderID, err := strconv.Atoi(chi.URLParam(r, "id"))

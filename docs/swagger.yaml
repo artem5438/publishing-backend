@@ -1,0 +1,612 @@
+basePath: /api
+definitions:
+  api.OrderResponse:
+    properties:
+      book_title:
+        type: string
+      circulation:
+        type: integer
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      creator_login:
+        type: string
+      filled_works_count:
+        description: 'Вычисляемое поле: кол-во позиций м-м с непустым комментарием'
+        type: integer
+      formed_at:
+        type: string
+      id:
+        type: integer
+      moderator_login:
+        type: string
+      status:
+        $ref: '#/definitions/models.OrderStatus'
+      total_price:
+        type: integer
+      works:
+        items:
+          $ref: '#/definitions/api.OrderWorkResponse'
+        type: array
+    type: object
+  api.OrderWorkResponse:
+    properties:
+      comment:
+        type: string
+      image_url:
+        type: string
+      price_rub:
+        type: integer
+      quantity:
+        type: integer
+      work_id:
+        type: integer
+      work_name:
+        type: string
+    type: object
+  api.WorkResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      param_deadline:
+        type: string
+      param_format:
+        type: string
+      param_quantity:
+        type: string
+      param_unit:
+        type: string
+      price_rub:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      unit:
+        type: string
+      video_url:
+        type: string
+      work_type:
+        type: string
+    type: object
+  models.OrderStatus:
+    enum:
+    - draft
+    - deleted
+    - formed
+    - completed
+    - rejected
+    type: string
+    x-enum-comments:
+      StatusCompleted: завершён
+      StatusDeleted: удалён
+      StatusDraft: черновик
+      StatusFormed: сформирован
+      StatusRejected: отклонён
+    x-enum-descriptions:
+    - черновик
+    - удалён
+    - сформирован
+    - завершён
+    - отклонён
+    x-enum-varnames:
+    - StatusDraft
+    - StatusDeleted
+    - StatusFormed
+    - StatusCompleted
+    - StatusRejected
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API для книжного издательства (лаб. 3)
+  title: Publishing Backend API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      description: Заглушка для лаб. 4, JWT будет добавлен позже
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Аутентификация (заглушка)
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Заглушка для лаб. 4
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Деавторизация (заглушка)
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт нового пользователя с хэшированным паролем
+      parameters:
+      - description: login, password, name, role
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация
+      tags:
+      - auth
+  /publishing-orders:
+    get:
+      description: Список без черновиков и удалённых. Фильтр по статусу и диапазону
+        даты формирования.
+      parameters:
+      - description: Статус (formed/completed/rejected)
+        in: query
+        name: status
+        type: string
+      - description: Дата от (2006-01-02)
+        in: query
+        name: from
+        type: string
+      - description: Дата до (2006-01-02)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.OrderResponse'
+            type: array
+      summary: Список заявок
+      tags:
+      - orders
+  /publishing-orders/{id}:
+    delete:
+      description: Логическое удаление черновика создателем
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить заявку
+      tags:
+      - orders
+    get:
+      description: Возвращает заявку с полным списком услуг и картинками
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OrderResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Одна заявка
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Изменяет тематические поля черновика (book_title, circulation)
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля для обновления
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OrderResponse'
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Изменить заявку
+      tags:
+      - orders
+  /publishing-orders/{id}/moderate:
+    put:
+      consumes:
+      - application/json
+      description: Модератор завершает (complete) или отклоняет (reject) сформированную
+        заявку
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'action: complete или reject'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Завершить или отклонить заявку
+      tags:
+      - orders
+  /publishing-orders/{id}/submit:
+    put:
+      description: Переводит черновик в статус formed. Проверяет обязательные поля
+        и рассчитывает total_price.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Сформировать заявку
+      tags:
+      - orders
+  /publishing-orders/{id}/works/{workId}:
+    delete:
+      description: Удаляет позицию из черновика (без PK м-м)
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID услуги
+        in: path
+        name: workId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить услугу из заявки
+      tags:
+      - order-works
+    put:
+      consumes:
+      - application/json
+      description: Изменяет количество и комментарий позиции М-М (без PK м-м)
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID услуги
+        in: path
+        name: workId
+        required: true
+        type: integer
+      - description: quantity, comment
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Изменить позицию в заявке
+      tags:
+      - order-works
+  /publishing-orders/cart:
+    get:
+      description: Возвращает id черновика и количество услуг в нём
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Иконка корзины
+      tags:
+      - orders
+  /publishing-orders/cart/works:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет услугу в черновик. Если черновика нет — создаётся автоматически.
+      parameters:
+      - description: work_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Добавить услугу в корзину
+      tags:
+      - order-works
+  /works:
+    get:
+      description: Возвращает все активные услуги. Поддерживает фильтр по названию.
+        Результат кэшируется в Redis на 60 сек.
+      parameters:
+      - description: Фильтр по названию
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.WorkResponse'
+            type: array
+      summary: Список услуг
+      tags:
+      - works
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создаёт новую услугу. Принимает multipart/form-data с файлами image
+        и video.
+      parameters:
+      - description: Название
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Цена в рублях
+        in: formData
+        name: price_rub
+        required: true
+        type: integer
+      - description: Описание
+        in: formData
+        name: description
+        type: string
+      - description: Тип работы
+        in: formData
+        name: work_type
+        type: string
+      - description: Единица
+        in: formData
+        name: unit
+        type: string
+      - description: Срок
+        in: formData
+        name: param_deadline
+        type: string
+      - description: Количество
+        in: formData
+        name: param_quantity
+        type: string
+      - description: Единица параметра
+        in: formData
+        name: param_unit
+        type: string
+      - description: Формат
+        in: formData
+        name: param_format
+        type: string
+      - description: Тег 1
+        in: formData
+        name: tag1
+        type: string
+      - description: Тег 2
+        in: formData
+        name: tag2
+        type: string
+      - description: Тег 3
+        in: formData
+        name: tag3
+        type: string
+      - description: Изображение
+        in: formData
+        name: image
+        type: file
+      - description: Видео
+        in: formData
+        name: video
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.WorkResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать услугу
+      tags:
+      - works
+  /works/{id}:
+    get:
+      description: Возвращает услугу по ID
+      parameters:
+      - description: ID услуги
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.WorkResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Одна услуга
+      tags:
+      - works
+swagger: "2.0"

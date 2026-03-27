@@ -90,8 +90,13 @@ func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse 
 }
 
 // ─── GET /api/publishing-orders/cart ─────────────────────────────────────────
-// Без параметров: возвращает id черновика и кол-во услуг в нём
-
+// GetCart godoc
+// @Summary     Иконка корзины
+// @Description Возвращает id черновика и количество услуг в нём
+// @Tags        orders
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Router      /publishing-orders/cart [get]
 func GetCart(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 
@@ -116,8 +121,16 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── GET /api/publishing-orders ───────────────────────────────────────────────
-// Список заявок (без черновиков и удалённых), фильтр по статусу и диапазону даты
-
+// GetOrders godoc
+// @Summary     Список заявок
+// @Description Список без черновиков и удалённых. Фильтр по статусу и диапазону даты формирования.
+// @Tags        orders
+// @Produce     json
+// @Param       status query string false "Статус (formed/completed/rejected)"
+// @Param       from   query string false "Дата от (2006-01-02)"
+// @Param       to     query string false "Дата до (2006-01-02)"
+// @Success     200 {array}  OrderResponse
+// @Router      /publishing-orders [get]
 func GetOrders(w http.ResponseWriter, r *http.Request) {
 	q := db.DB.
 		Preload("Creator").
@@ -157,8 +170,15 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── GET /api/publishing-orders/{id} ─────────────────────────────────────────
-// Одна заявка + список её услуг с картинками
-
+// GetOrder godoc
+// @Summary     Одна заявка
+// @Description Возвращает заявку с полным списком услуг и картинками
+// @Tags        orders
+// @Produce     json
+// @Param       id path int true "ID заявки"
+// @Success     200 {object} OrderResponse
+// @Failure     404 {object} map[string]string
+// @Router      /publishing-orders/{id} [get]
 func GetOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -179,8 +199,17 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── PUT /api/publishing-orders/{id} ─────────────────────────────────────────
-// Изменить тематические поля заявки (системные поля — запрещены)
-
+// UpdateOrder godoc
+// @Summary     Изменить заявку
+// @Description Изменяет тематические поля черновика (book_title, circulation)
+// @Tags        orders
+// @Accept      json
+// @Produce     json
+// @Param       id   path     int  true "ID заявки"
+// @Param       body body     object true "Поля для обновления"
+// @Success     200  {object} OrderResponse
+// @Failure     403  {object} map[string]string
+// @Router      /publishing-orders/{id} [put]
 func UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 	id := chi.URLParam(r, "id")
@@ -213,8 +242,16 @@ func UpdateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── PUT /api/publishing-orders/{id}/submit ───────────────────────────────────
-// Создатель формирует черновик: проверки → расчёт стоимости → draft → formed
-
+// SubmitOrder godoc
+// @Summary     Сформировать заявку
+// @Description Переводит черновик в статус formed. Проверяет обязательные поля и рассчитывает total_price.
+// @Tags        orders
+// @Produce     json
+// @Param       id path int true "ID заявки"
+// @Success     200 {object} OrderResponse
+// @Failure     400 {object} map[string]string
+// @Failure     403 {object} map[string]string
+// @Router      /publishing-orders/{id}/submit [put]
 func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 	id := chi.URLParam(r, "id")
@@ -264,8 +301,17 @@ func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 // ─── PUT /api/publishing-orders/{id}/moderate ────────────────────────────────
-// Модератор завершает или отклоняет сформированную заявку
-
+// ModerateOrder godoc
+// @Summary     Завершить или отклонить заявку
+// @Description Модератор завершает (complete) или отклоняет (reject) сформированную заявку
+// @Tags        orders
+// @Accept      json
+// @Produce     json
+// @Param       id   path int    true "ID заявки"
+// @Param       body body object true "action: complete или reject"
+// @Success     200  {object} OrderResponse
+// @Failure     400  {object} map[string]string
+// @Router      /publishing-orders/{id}/moderate [put]
 func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 	// В лаб. 3 модератор тоже зафиксирован константой
 	moderatorID := getCreatorID()
@@ -312,7 +358,15 @@ func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 
 // ─── DELETE /api/publishing-orders/{id} ───────────────────────────────────────
 // Логическое удаление черновика создателем
-
+// DeleteOrder godoc
+// @Summary     Удалить заявку
+// @Description Логическое удаление черновика создателем
+// @Tags        orders
+// @Produce     json
+// @Param       id path int true "ID заявки"
+// @Success     200 {object} map[string]string
+// @Failure     403 {object} map[string]string
+// @Router      /publishing-orders/{id} [delete]
 func DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 	id := chi.URLParam(r, "id")

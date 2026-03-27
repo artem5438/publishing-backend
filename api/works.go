@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,14 +17,13 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-// ─── Minio ───────────────────────────────────────────────────────────────────
-
 const (
 	minioBucket   = "publishing-media"
 	minioEndpoint = "localhost:9000"
 	minioAccess   = "minioadmin"
-	minioSecret   = "minioadmin"
+	minioSecret   = "minioadmin123"
 	minioBaseURL  = "http://localhost:9000/publishing-media"
+	worksRedisKey = "api:works:all"
 )
 
 func newMinioClient() (*minio.Client, error) {
@@ -35,13 +33,10 @@ func newMinioClient() (*minio.Client, error) {
 	})
 }
 
-// generateFileName генерирует уникальное имя файла на латинице
 func generateFileName(original string) string {
 	ext := filepath.Ext(original)
 	return fmt.Sprintf("file-%d%s", time.Now().UnixNano(), ext)
 }
-
-// ─── Response-структура услуги ────────────────────────────────────────────────
 
 type WorkResponse struct {
 	ID            uint     `json:"id"`
@@ -68,7 +63,6 @@ func toWorkResponse(m models.Work) WorkResponse {
 	if m.VideoKey != nil && *m.VideoKey != "" {
 		videoURL = minioBaseURL + "/" + *m.VideoKey
 	}
-
 	tags := []string{}
 	if m.Tag1 != "" {
 		tags = append(tags, m.Tag1)
@@ -79,7 +73,6 @@ func toWorkResponse(m models.Work) WorkResponse {
 	if m.Tag3 != "" {
 		tags = append(tags, m.Tag3)
 	}
-
 	return WorkResponse{
 		ID:            m.ID,
 		Name:          m.Name,
@@ -97,18 +90,21 @@ func toWorkResponse(m models.Work) WorkResponse {
 	}
 }
 
-// ─── GET /api/works ───────────────────────────────────────────────────────────
-const worksRedisKey = "api:works:all"
-
+// GetWorks godoc
+// @Summary     Список услуг
+// @Description Возвращает все активные услуги. Поддерживает фильтр по названию. Результат кэшируется в Redis на 60 сек.
+// @Tags        works
+// @Produce     json
+// @Param       query query string false "Фильтр по названию"
+// @Success     200 {array}  WorkResponse
+// @Router      /works [get]
 func GetWorks(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))
 	ctx := context.Background()
 
-	// Кэшируем только запрос без фильтра
 	if query == "" {
 		cached, err := db.Redis.Get(ctx, worksRedisKey).Result()
 		if err == nil {
-			// Кэш найден — отдаём сразу
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("X-Cache", "HIT")
 			w.WriteHeader(http.StatusOK)
@@ -119,7 +115,6 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Кэша нет — идём в БД
 	var dbWorks []models.Work
 	tx := db.DB.Where("status = ?", models.WorkStatusActive)
 	if query != "" {
@@ -132,7 +127,6 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 		result = append(result, toWorkResponse(item))
 	}
 
-	// Кладём в Redis только если нет фильтра
 	if query == "" {
 		if jsonBytes, err := json.Marshal(result); err == nil {
 			if err := db.Redis.Set(ctx, worksRedisKey, string(jsonBytes), 60*time.Second).Err(); err == nil {
@@ -144,14 +138,20 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// ─── GET /api/works/{id} ──────────────────────────────────────────────────────
-
+// GetWork godoc
+// @Summary     Одна услуга
+// @Description Возвращает услугу по ID
+// @Tags        works
+// @Produce     json
+// @Param       id path int true "ID услуги"
+// @Success     200 {object} WorkResponse
+// @Failure     404 {object} map[string]string
+// @Router      /works/{id} [get]
 func GetWork(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var work models.Work
-	res := db.DB.Where("id = ? AND status = ?", id, models.WorkStatusActive).First(&work)
-	if res.Error != nil {
+	if db.DB.Where("id = ? AND status = ?", id, models.WorkStatusActive).First(&work).Error != nil {
 		writeError(w, http.StatusNotFound, "услуга не найдена")
 		return
 	}
@@ -159,8 +159,29 @@ func GetWork(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toWorkResponse(work))
 }
 
-// ─── POST /api/works ──────────────────────────────────────────────────────────
-
+// CreateWork godoc
+// @Summary     Создать услугу
+// @Description Создаёт новую услугу. Принимает multipart/form-data с файлами image и video.
+// @Tags        works
+// @Accept      mpfd
+// @Produce     json
+// @Param       name          formData string true  "Название"
+// @Param       price_rub     formData int    true  "Цена в рублях"
+// @Param       description   formData string false "Описание"
+// @Param       work_type     formData string false "Тип работы"
+// @Param       unit          formData string false "Единица"
+// @Param       param_deadline formData string false "Срок"
+// @Param       param_quantity formData string false "Количество"
+// @Param       param_unit    formData string false "Единица параметра"
+// @Param       param_format  formData string false "Формат"
+// @Param       tag1          formData string false "Тег 1"
+// @Param       tag2          formData string false "Тег 2"
+// @Param       tag3          formData string false "Тег 3"
+// @Param       image         formData file   false "Изображение"
+// @Param       video         formData file   false "Видео"
+// @Success     201 {object} WorkResponse
+// @Failure     400 {object} map[string]string
+// @Router      /works [post]
 func CreateWork(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		writeError(w, http.StatusBadRequest, "ошибка разбора формы")
@@ -173,8 +194,8 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	priceRub, err := strconv.Atoi(r.FormValue("price_rub"))
-	if err != nil {
+	var priceRub int
+	if _, err := fmt.Sscan(r.FormValue("price_rub"), &priceRub); err != nil {
 		writeError(w, http.StatusBadRequest, "price_rub должен быть числом")
 		return
 	}
@@ -197,46 +218,39 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 
 	mc, minioErr := newMinioClient()
 
-	// Загрузка изображения
 	if imageFile, imageHeader, err := r.FormFile("image"); err == nil {
 		defer imageFile.Close() //nolint:errcheck
 		if minioErr == nil {
 			key := generateFileName(imageHeader.Filename)
-			_, uploadErr := mc.PutObject(
+			if _, uploadErr := mc.PutObject(
 				context.Background(), minioBucket, key,
 				imageFile, imageHeader.Size,
 				minio.PutObjectOptions{ContentType: imageHeader.Header.Get("Content-Type")},
-			)
-			if uploadErr == nil {
+			); uploadErr == nil {
 				work.ImageKey = &key
 			}
 		}
 	}
 
-	// Загрузка видео
 	if videoFile, videoHeader, err := r.FormFile("video"); err == nil {
 		defer videoFile.Close() //nolint:errcheck
 		if minioErr == nil {
 			key := generateFileName(videoHeader.Filename)
-			_, uploadErr := mc.PutObject(
+			if _, uploadErr := mc.PutObject(
 				context.Background(), minioBucket, key,
 				videoFile, videoHeader.Size,
 				minio.PutObjectOptions{ContentType: videoHeader.Header.Get("Content-Type")},
-			)
-			if uploadErr == nil {
+			); uploadErr == nil {
 				work.VideoKey = &key
 			}
 		}
 	}
 
-	if res := db.DB.Create(&work); res.Error != nil {
+	if err := db.DB.Create(&work).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка создания услуги")
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, toWorkResponse(work))
-
-	// Инвалидируем кэш после добавления новой услуги
 	db.Redis.Del(context.Background(), worksRedisKey) //nolint:errcheck
 
 	writeJSON(w, http.StatusCreated, toWorkResponse(work))

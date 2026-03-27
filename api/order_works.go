@@ -13,7 +13,17 @@ import (
 
 // ─── POST /api/publishing-orders/{id}/works ───────────────────────────────────
 // Добавить услугу в заявку-черновик. Если черновика нет — создаётся автоматически.
-
+// AddWorkToOrder godoc
+// @Summary     Добавить услугу в корзину
+// @Description Добавляет услугу в черновик. Если черновика нет — создаётся автоматически.
+// @Tags        order-works
+// @Accept      json
+// @Produce     json
+// @Param       body body object true "work_id"
+// @Success     201  {object} map[string]interface{}
+// @Failure     400  {object} map[string]string
+// @Failure     404  {object} map[string]string
+// @Router      /publishing-orders/cart/works [post]
 func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 
@@ -72,7 +82,19 @@ func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
 
 // ─── PUT /api/publishing-orders/{id}/works/{workId} ──────────────────────────
 // Изменить количество позиции в заявке (без PK м-м, ищем по order_id + work_id)
-
+// UpdateOrderWork godoc
+// @Summary     Изменить позицию в заявке
+// @Description Изменяет количество и комментарий позиции М-М (без PK м-м)
+// @Tags        order-works
+// @Accept      json
+// @Produce     json
+// @Param       id     path int    true "ID заявки"
+// @Param       workId path int    true "ID услуги"
+// @Param       body   body object true "quantity, comment"
+// @Success     200    {object} map[string]interface{}
+// @Failure     403    {object} map[string]string
+// @Failure     404    {object} map[string]string
+// @Router      /publishing-orders/{id}/works/{workId} [put]
 func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 
@@ -131,7 +153,17 @@ func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 
 // ─── DELETE /api/publishing-orders/{id}/works/{workId} ───────────────────────
 // Удалить позицию из заявки (без PK м-м)
-
+// RemoveWorkFromOrder godoc
+// @Summary     Удалить услугу из заявки
+// @Description Удаляет позицию из черновика (без PK м-м)
+// @Tags        order-works
+// @Produce     json
+// @Param       id     path int true "ID заявки"
+// @Param       workId path int true "ID услуги"
+// @Success     200    {object} map[string]string
+// @Failure     403    {object} map[string]string
+// @Failure     404    {object} map[string]string
+// @Router      /publishing-orders/{id}/works/{workId} [delete]
 func RemoveWorkFromOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 

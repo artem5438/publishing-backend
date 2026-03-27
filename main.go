@@ -1,3 +1,9 @@
+// @title           Publishing Backend API
+// @version         1.0
+// @description     REST API для книжного издательства (лаб. 3)
+// @host            localhost:8080
+// @BasePath        /api
+
 package main
 
 import (
@@ -8,11 +14,14 @@ import (
 	"strconv"
 	"strings"
 
+	_ "publishing-backend/docs"
+
 	"publishing-backend/api"
 	"publishing-backend/db"
 	"publishing-backend/models"
 
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // ─── View-структуры (SSR) ────────────────────────────────────────────────────
@@ -129,6 +138,11 @@ func main() {
 	r := chi.NewRouter()
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
+	// ── Swagger UI ────────────────────────────────────────────────────────────
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
+
 	// ── SSR маршруты (лаб. 1–2) ──────────────────────────────────────────────
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/works", http.StatusSeeOther)
@@ -157,7 +171,7 @@ func main() {
 		r.Delete("/publishing-orders/{id}", api.DeleteOrder)
 
 		// Домен: М-М (услуги в заявке)
-		r.Post("/publishing-orders/{id}/works", api.AddWorkToOrder)
+		r.Post("/publishing-orders/cart/works", api.AddWorkToOrder)
 		r.Put("/publishing-orders/{id}/works/{workId}", api.UpdateOrderWork)
 		r.Delete("/publishing-orders/{id}/works/{workId}", api.RemoveWorkFromOrder)
 
@@ -169,6 +183,7 @@ func main() {
 
 	log.Println("Сервер запущен: http://localhost:8080")
 	log.Println("API:            http://localhost:8080/api")
+	log.Println("Swagger UI:     http://localhost:8080/swagger/")
 	log.Println("Minio консоль:  http://localhost:9001")
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
@@ -293,7 +308,7 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 			Status:    models.StatusDraft,
 			CreatorID: creatorID,
 		}
-		db.DB.Create(&order)
+		db.DB.Create(&order) //nolint:errcheck
 	}
 
 	var existing models.OrderWork
@@ -306,7 +321,7 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 			WorkID:   uint(workID),
 			Quantity: 1,
 		}
-		db.DB.Create(&orderWork)
+		db.DB.Create(&orderWork) //nolint:errcheck
 	}
 
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
@@ -321,7 +336,7 @@ func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.DB.Exec(
+	db.DB.Exec( //nolint:errcheck
 		"UPDATE publishing_orders SET status = ? WHERE id = ? AND creator_id = ? AND status = ?",
 		models.StatusDeleted, id, creatorID, models.StatusDraft,
 	)
@@ -351,9 +366,9 @@ func updateWorkQuantityHandler(w http.ResponseWriter, r *http.Request) {
 	if res.Error == nil {
 		newQty := ow.Quantity + delta
 		if newQty <= 0 {
-			db.DB.Delete(&ow)
+			db.DB.Delete(&ow) //nolint:errcheck
 		} else {
-			db.DB.Model(&ow).Update("quantity", newQty)
+			db.DB.Model(&ow).Update("quantity", newQty) //nolint:errcheck
 		}
 	}
 

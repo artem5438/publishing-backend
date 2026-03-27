@@ -12,7 +12,17 @@ import (
 
 // ─── POST /api/auth/register ──────────────────────────────────────────────────
 // Реальная регистрация: логин, пароль (bcrypt), имя, роль
-
+// Register godoc
+// @Summary     Регистрация
+// @Description Создаёт нового пользователя с хэшированным паролем
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       body body object true "login, password, name, role"
+// @Success     201  {object} map[string]interface{}
+// @Failure     400  {object} map[string]string
+// @Failure     409  {object} map[string]string
+// @Router      /auth/register [post]
 func Register(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Login    string `json:"login"`
@@ -70,7 +80,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────
 // Заглушка для лаб. 4 (JWT будет добавлен позже)
-
+// Login godoc
+// @Summary     Аутентификация (заглушка)
+// @Description Заглушка для лаб. 4, JWT будет добавлен позже
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} map[string]string
+// @Router      /auth/login [post]
 func Login(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"message": "ok (заглушка, JWT будет в лаб. 4)",
@@ -79,7 +95,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────
 // Заглушка для лаб. 4
-
+// Logout godoc
+// @Summary     Деавторизация (заглушка)
+// @Description Заглушка для лаб. 4
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} map[string]string
+// @Router      /auth/logout [post]
 func Logout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"message": "ok (заглушка, JWT будет в лаб. 4)",

@@ -1,0 +1,908 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API для книжного издательства (лаб. 3)",
+        "title": "Publishing Backend API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api",
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "description": "Заглушка для лаб. 4, JWT будет добавлен позже",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Аутентификация (заглушка)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "Заглушка для лаб. 4",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Деавторизация (заглушка)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Создаёт нового пользователя с хэшированным паролем",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Регистрация",
+                "parameters": [
+                    {
+                        "description": "login, password, name, role",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders": {
+            "get": {
+                "description": "Список без черновиков и удалённых. Фильтр по статусу и диапазону даты формирования.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Список заявок",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Статус (formed/completed/rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата от (2006-01-02)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата до (2006-01-02)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.OrderResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders/cart": {
+            "get": {
+                "description": "Возвращает id черновика и количество услуг в нём",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Иконка корзины",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders/cart/works": {
+            "post": {
+                "description": "Добавляет услугу в черновик. Если черновика нет — создаётся автоматически.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-works"
+                ],
+                "summary": "Добавить услугу в корзину",
+                "parameters": [
+                    {
+                        "description": "work_id",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders/{id}": {
+            "get": {
+                "description": "Возвращает заявку с полным списком услуг и картинками",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Одна заявка",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OrderResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Изменяет тематические поля черновика (book_title, circulation)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Изменить заявку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Поля для обновления",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OrderResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Логическое удаление черновика создателем",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Удалить заявку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders/{id}/moderate": {
+            "put": {
+                "description": "Модератор завершает (complete) или отклоняет (reject) сформированную заявку",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Завершить или отклонить заявку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "action: complete или reject",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders/{id}/submit": {
+            "put": {
+                "description": "Переводит черновик в статус formed. Проверяет обязательные поля и рассчитывает total_price.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Сформировать заявку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publishing-orders/{id}/works/{workId}": {
+            "put": {
+                "description": "Изменяет количество и комментарий позиции М-М (без PK м-м)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-works"
+                ],
+                "summary": "Изменить позицию в заявке",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID услуги",
+                        "name": "workId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "quantity, comment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет позицию из черновика (без PK м-м)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-works"
+                ],
+                "summary": "Удалить услугу из заявки",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заявки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID услуги",
+                        "name": "workId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/works": {
+            "get": {
+                "description": "Возвращает все активные услуги. Поддерживает фильтр по названию. Результат кэшируется в Redis на 60 сек.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "works"
+                ],
+                "summary": "Список услуг",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Фильтр по названию",
+                        "name": "query",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.WorkResponse"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создаёт новую услугу. Принимает multipart/form-data с файлами image и video.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "works"
+                ],
+                "summary": "Создать услугу",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Название",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Цена в рублях",
+                        "name": "price_rub",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Описание",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тип работы",
+                        "name": "work_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Единица",
+                        "name": "unit",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Срок",
+                        "name": "param_deadline",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Количество",
+                        "name": "param_quantity",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Единица параметра",
+                        "name": "param_unit",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Формат",
+                        "name": "param_format",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тег 1",
+                        "name": "tag1",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тег 2",
+                        "name": "tag2",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тег 3",
+                        "name": "tag3",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Изображение",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Видео",
+                        "name": "video",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/works/{id}": {
+            "get": {
+                "description": "Возвращает услугу по ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "works"
+                ],
+                "summary": "Одна услуга",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID услуги",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.OrderResponse": {
+            "type": "object",
+            "properties": {
+                "book_title": {
+                    "type": "string"
+                },
+                "circulation": {
+                    "type": "integer"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "creator_login": {
+                    "type": "string"
+                },
+                "filled_works_count": {
+                    "description": "Вычисляемое поле: кол-во позиций м-м с непустым комментарием",
+                    "type": "integer"
+                },
+                "formed_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "moderator_login": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.OrderStatus"
+                },
+                "total_price": {
+                    "type": "integer"
+                },
+                "works": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.OrderWorkResponse"
+                    }
+                }
+            }
+        },
+        "api.OrderWorkResponse": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "price_rub": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "work_id": {
+                    "type": "integer"
+                },
+                "work_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.WorkResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "param_deadline": {
+                    "type": "string"
+                },
+                "param_format": {
+                    "type": "string"
+                },
+                "param_quantity": {
+                    "type": "string"
+                },
+                "param_unit": {
+                    "type": "string"
+                },
+                "price_rub": {
+                    "type": "integer"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "unit": {
+                    "type": "string"
+                },
+                "video_url": {
+                    "type": "string"
+                },
+                "work_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.OrderStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "deleted",
+                "formed",
+                "completed",
+                "rejected"
+            ],
+            "x-enum-comments": {
+                "StatusCompleted": "завершён",
+                "StatusDeleted": "удалён",
+                "StatusDraft": "черновик",
+                "StatusFormed": "сформирован",
+                "StatusRejected": "отклонён"
+            },
+            "x-enum-descriptions": [
+                "черновик",
+                "удалён",
+                "сформирован",
+                "завершён",
+                "отклонён"
+            ],
+            "x-enum-varnames": [
+                "StatusDraft",
+                "StatusDeleted",
+                "StatusFormed",
+                "StatusCompleted",
+                "StatusRejected"
+            ]
+        }
+    }
+}

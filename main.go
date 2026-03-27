@@ -124,6 +124,7 @@ func getCartInfo() (cartCount int, orderID int) {
 func main() {
 	db.Connect()
 	db.Migrate()
+	db.ConnectRedis()
 
 	r := chi.NewRouter()
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))

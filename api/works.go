@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -97,10 +98,28 @@ func toWorkResponse(m models.Work) WorkResponse {
 }
 
 // ─── GET /api/works ───────────────────────────────────────────────────────────
+const worksRedisKey = "api:works:all"
 
 func GetWorks(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))
+	ctx := context.Background()
 
+	// Кэшируем только запрос без фильтра
+	if query == "" {
+		cached, err := db.Redis.Get(ctx, worksRedisKey).Result()
+		if err == nil {
+			// Кэш найден — отдаём сразу
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Cache", "HIT")
+			w.WriteHeader(http.StatusOK)
+			if _, err := fmt.Fprint(w, cached); err != nil {
+				http.Error(w, "write error", http.StatusInternalServerError)
+			}
+			return
+		}
+	}
+
+	// Кэша нет — идём в БД
 	var dbWorks []models.Work
 	tx := db.DB.Where("status = ?", models.WorkStatusActive)
 	if query != "" {
@@ -111,6 +130,15 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 	result := make([]WorkResponse, 0, len(dbWorks))
 	for _, item := range dbWorks {
 		result = append(result, toWorkResponse(item))
+	}
+
+	// Кладём в Redis только если нет фильтра
+	if query == "" {
+		if jsonBytes, err := json.Marshal(result); err == nil {
+			if err := db.Redis.Set(ctx, worksRedisKey, string(jsonBytes), 60*time.Second).Err(); err == nil {
+				w.Header().Set("X-Cache", "MISS")
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, result)
@@ -205,6 +233,11 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "ошибка создания услуги")
 		return
 	}
+
+	writeJSON(w, http.StatusCreated, toWorkResponse(work))
+
+	// Инвалидируем кэш после добавления новой услуги
+	db.Redis.Del(context.Background(), worksRedisKey) //nolint:errcheck
 
 	writeJSON(w, http.StatusCreated, toWorkResponse(work))
 }

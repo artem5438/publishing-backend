@@ -101,23 +101,22 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID()
 
 	var order models.PublishingOrder
-	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
-		Preload("Works").
+	res := db.DB.
+		Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).
+		Preload("Creator").
+		Preload("Works.Work").
 		First(&order)
 
 	if res.Error != nil {
-		// Черновика нет — возвращаем пустую корзину
-		writeJSON(w, http.StatusOK, map[string]any{
+		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"order_id":    nil,
 			"works_count": 0,
+			"works":       []interface{}{},
 		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"order_id":    order.ID,
-		"works_count": len(order.Works),
-	})
+	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
 }
 
 // ─── GET /api/publishing-orders ───────────────────────────────────────────────

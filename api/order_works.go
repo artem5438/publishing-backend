@@ -23,6 +23,7 @@ import (
 // @Success     201  {object} map[string]interface{}
 // @Failure     400  {object} map[string]string
 // @Failure     404  {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/cart/works [post]
 func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)
@@ -94,6 +95,7 @@ func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
 // @Success     200    {object} map[string]interface{}
 // @Failure     403    {object} map[string]string
 // @Failure     404    {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id}/works/{workId} [put]
 func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)
@@ -163,6 +165,7 @@ func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 // @Success     200    {object} map[string]string
 // @Failure     403    {object} map[string]string
 // @Failure     404    {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id}/works/{workId} [delete]
 func RemoveWorkFromOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)

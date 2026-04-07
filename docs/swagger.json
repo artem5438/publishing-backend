@@ -1,27 +1,57 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "REST API для книжного издательства (лаб. 3)",
+        "description": "REST API для книжного издательства (лаб. 4)",
         "title": "Publishing Backend API",
         "contact": {},
-        "version": "1.0"
+        "version": "2.0"
     },
     "host": "localhost:8080",
     "basePath": "/api",
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Заглушка для лаб. 4, JWT будет добавлен позже",
+                "description": "Проверяет логин/пароль, создаёт сессию в Redis, устанавливает куку session_id",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Аутентификация (заглушка)",
+                "summary": "Аутентификация",
+                "parameters": [
+                    {
+                        "description": "login, password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -34,14 +64,14 @@
         },
         "/auth/logout": {
             "post": {
-                "description": "Заглушка для лаб. 4",
+                "description": "Удаляет сессию из Redis и очищает куку",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Деавторизация (заглушка)",
+                "summary": "Деавторизация",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -153,6 +183,11 @@
         },
         "/publishing-orders/cart": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает id черновика и количество услуг в нём",
                 "produces": [
                     "application/json"
@@ -174,6 +209,11 @@
         },
         "/publishing-orders/cart/works": {
             "post": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Добавляет услугу в черновик. Если черновика нет — создаётся автоматически.",
                 "consumes": [
                     "application/json"
@@ -227,6 +267,11 @@
         },
         "/publishing-orders/{id}": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает заявку с полным списком услуг и картинками",
                 "produces": [
                     "application/json"
@@ -263,6 +308,11 @@
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Изменяет тематические поля черновика (book_title, circulation)",
                 "consumes": [
                     "application/json"
@@ -311,6 +361,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Логическое удаление черновика создателем",
                 "produces": [
                     "application/json"
@@ -352,6 +407,11 @@
         },
         "/publishing-orders/{id}/moderate": {
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Модератор завершает (complete) или отклоняет (reject) сформированную заявку",
                 "consumes": [
                     "application/json"
@@ -402,6 +462,11 @@
         },
         "/publishing-orders/{id}/submit": {
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Переводит черновик в статус formed. Проверяет обязательные поля и рассчитывает total_price.",
                 "produces": [
                     "application/json"
@@ -449,6 +514,11 @@
         },
         "/publishing-orders/{id}/works/{workId}": {
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Изменяет количество и комментарий позиции М-М (без PK м-м)",
                 "consumes": [
                     "application/json"
@@ -514,6 +584,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Удаляет позицию из черновика (без PK м-м)",
                 "produces": [
                     "application/json"
@@ -571,6 +646,11 @@
         },
         "/works": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает все активные услуги. Поддерживает фильтр по названию. Результат кэшируется в Redis на 60 сек.",
                 "produces": [
                     "application/json"
@@ -903,6 +983,13 @@
                 "StatusCompleted",
                 "StatusRejected"
             ]
+        }
+    },
+    "securityDefinitions": {
+        "CookieAuth": {
+            "type": "apiKey",
+            "name": "session_id",
+            "in": "cookie"
         }
     }
 }

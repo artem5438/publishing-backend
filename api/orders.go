@@ -96,6 +96,7 @@ func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse 
 // @Tags        orders
 // @Produce     json
 // @Success     200 {object} map[string]interface{}
+// @Security CookieAuth
 // @Router      /publishing-orders/cart [get]
 func GetCart(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)
@@ -177,6 +178,7 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 // @Param       id path int true "ID заявки"
 // @Success     200 {object} OrderResponse
 // @Failure     404 {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id} [get]
 func GetOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -208,6 +210,7 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 // @Param       body body     object true "Поля для обновления"
 // @Success     200  {object} OrderResponse
 // @Failure     403  {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id} [put]
 func UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)
@@ -250,6 +253,7 @@ func UpdateOrder(w http.ResponseWriter, r *http.Request) {
 // @Success     200 {object} OrderResponse
 // @Failure     400 {object} map[string]string
 // @Failure     403 {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id}/submit [put]
 func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)
@@ -310,6 +314,7 @@ func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 // @Param       body body object true "action: complete или reject"
 // @Success     200  {object} OrderResponse
 // @Failure     400  {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id}/moderate [put]
 func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 	// В лаб. 3 модератор тоже зафиксирован константой
@@ -365,6 +370,7 @@ func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 // @Param       id path int true "ID заявки"
 // @Success     200 {object} map[string]string
 // @Failure     403 {object} map[string]string
+// @Security CookieAuth
 // @Router      /publishing-orders/{id} [delete]
 func DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	creatorID := getCreatorID(r)

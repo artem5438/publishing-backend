@@ -105,28 +105,49 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: REST API для книжного издательства (лаб. 3)
+  description: REST API для книжного издательства (лаб. 4)
   title: Publishing Backend API
-  version: "1.0"
+  version: "2.0"
 paths:
   /auth/login:
     post:
-      description: Заглушка для лаб. 4, JWT будет добавлен позже
+      consumes:
+      - application/json
+      description: Проверяет логин/пароль, создаёт сессию в Redis, устанавливает куку
+        session_id
+      parameters:
+      - description: login, password
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
             additionalProperties:
               type: string
             type: object
-      summary: Аутентификация (заглушка)
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Аутентификация
       tags:
       - auth
   /auth/logout:
     post:
-      description: Заглушка для лаб. 4
+      description: Удаляет сессию из Redis и очищает куку
       produces:
       - application/json
       responses:
@@ -136,7 +157,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Деавторизация (заглушка)
+      summary: Деавторизация
       tags:
       - auth
   /auth/register:
@@ -227,6 +248,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Удалить заявку
       tags:
       - orders
@@ -251,6 +274,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Одна заявка
       tags:
       - orders
@@ -283,6 +308,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Изменить заявку
       tags:
       - orders
@@ -317,6 +344,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Завершить или отклонить заявку
       tags:
       - orders
@@ -349,6 +378,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Сформировать заявку
       tags:
       - orders
@@ -387,6 +418,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Удалить услугу из заявки
       tags:
       - order-works
@@ -431,6 +464,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Изменить позицию в заявке
       tags:
       - order-works
@@ -445,6 +480,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - CookieAuth: []
       summary: Иконка корзины
       tags:
       - orders
@@ -480,6 +517,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Добавить услугу в корзину
       tags:
       - order-works
@@ -501,6 +540,8 @@ paths:
             items:
               $ref: '#/definitions/api.WorkResponse'
             type: array
+      security:
+      - CookieAuth: []
       summary: Список услуг
       tags:
       - works
@@ -609,4 +650,9 @@ paths:
       summary: Одна услуга
       tags:
       - works
+securityDefinitions:
+  CookieAuth:
+    in: cookie
+    name: session_id
+    type: apiKey
 swagger: "2.0"

@@ -17,17 +17,47 @@ const docTemplate = `{
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Заглушка для лаб. 4, JWT будет добавлен позже",
+                "description": "Проверяет логин/пароль, создаёт сессию в Redis, устанавливает куку session_id",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Аутентификация (заглушка)",
+                "summary": "Аутентификация",
+                "parameters": [
+                    {
+                        "description": "login, password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -40,14 +70,14 @@ const docTemplate = `{
         },
         "/auth/logout": {
             "post": {
-                "description": "Заглушка для лаб. 4",
+                "description": "Удаляет сессию из Redis и очищает куку",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Деавторизация (заглушка)",
+                "summary": "Деавторизация",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -159,6 +189,11 @@ const docTemplate = `{
         },
         "/publishing-orders/cart": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает id черновика и количество услуг в нём",
                 "produces": [
                     "application/json"
@@ -180,6 +215,11 @@ const docTemplate = `{
         },
         "/publishing-orders/cart/works": {
             "post": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Добавляет услугу в черновик. Если черновика нет — создаётся автоматически.",
                 "consumes": [
                     "application/json"
@@ -233,6 +273,11 @@ const docTemplate = `{
         },
         "/publishing-orders/{id}": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает заявку с полным списком услуг и картинками",
                 "produces": [
                     "application/json"
@@ -269,6 +314,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Изменяет тематические поля черновика (book_title, circulation)",
                 "consumes": [
                     "application/json"
@@ -317,6 +367,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Логическое удаление черновика создателем",
                 "produces": [
                     "application/json"
@@ -358,6 +413,11 @@ const docTemplate = `{
         },
         "/publishing-orders/{id}/moderate": {
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Модератор завершает (complete) или отклоняет (reject) сформированную заявку",
                 "consumes": [
                     "application/json"
@@ -408,6 +468,11 @@ const docTemplate = `{
         },
         "/publishing-orders/{id}/submit": {
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Переводит черновик в статус formed. Проверяет обязательные поля и рассчитывает total_price.",
                 "produces": [
                     "application/json"
@@ -455,6 +520,11 @@ const docTemplate = `{
         },
         "/publishing-orders/{id}/works/{workId}": {
             "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Изменяет количество и комментарий позиции М-М (без PK м-м)",
                 "consumes": [
                     "application/json"
@@ -520,6 +590,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Удаляет позицию из черновика (без PK м-м)",
                 "produces": [
                     "application/json"
@@ -577,6 +652,11 @@ const docTemplate = `{
         },
         "/works": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает все активные услуги. Поддерживает фильтр по названию. Результат кэшируется в Redis на 60 сек.",
                 "produces": [
                     "application/json"
@@ -910,17 +990,24 @@ const docTemplate = `{
                 "StatusRejected"
             ]
         }
+    },
+    "securityDefinitions": {
+        "CookieAuth": {
+            "type": "apiKey",
+            "name": "session_id",
+            "in": "cookie"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "2.0",
 	Host:             "localhost:8080",
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Publishing Backend API",
-	Description:      "REST API для книжного издательства (лаб. 3)",
+	Description:      "REST API для книжного издательства (лаб. 4)",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

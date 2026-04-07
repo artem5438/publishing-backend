@@ -97,6 +97,7 @@ func toWorkResponse(m models.Work) WorkResponse {
 // @Produce     json
 // @Param       query query string false "Фильтр по названию"
 // @Success     200 {array}  WorkResponse
+// @Security CookieAuth
 // @Router      /works [get]
 func GetWorks(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))

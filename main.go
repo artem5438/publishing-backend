@@ -1,8 +1,12 @@
 // @title           Publishing Backend API
-// @version         1.0
-// @description     REST API для книжного издательства (лаб. 3)
+// @version         2.0
+// @description     REST API для книжного издательства (лаб. 4)
 // @host            localhost:8080
 // @BasePath        /api
+
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name session_id
 
 package main
 

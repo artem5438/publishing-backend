@@ -98,7 +98,7 @@ func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse 
 // @Success     200 {object} map[string]interface{}
 // @Router      /publishing-orders/cart [get]
 func GetCart(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 
 	var order models.PublishingOrder
 	res := db.DB.
@@ -210,7 +210,7 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 // @Failure     403  {object} map[string]string
 // @Router      /publishing-orders/{id} [put]
 func UpdateOrder(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 	id := chi.URLParam(r, "id")
 
 	var order models.PublishingOrder
@@ -252,7 +252,7 @@ func UpdateOrder(w http.ResponseWriter, r *http.Request) {
 // @Failure     403 {object} map[string]string
 // @Router      /publishing-orders/{id}/submit [put]
 func SubmitOrder(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 	id := chi.URLParam(r, "id")
 
 	var order models.PublishingOrder
@@ -313,7 +313,7 @@ func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 // @Router      /publishing-orders/{id}/moderate [put]
 func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 	// В лаб. 3 модератор тоже зафиксирован константой
-	moderatorID := getCreatorID()
+	moderatorID := getCreatorID(r)
 	id := chi.URLParam(r, "id")
 
 	var order models.PublishingOrder
@@ -367,7 +367,7 @@ func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 // @Failure     403 {object} map[string]string
 // @Router      /publishing-orders/{id} [delete]
 func DeleteOrder(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 	id := chi.URLParam(r, "id")
 
 	var order models.PublishingOrder

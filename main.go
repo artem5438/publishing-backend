@@ -156,29 +156,39 @@ func main() {
 
 	// ── REST API маршруты (лаб. 3) ────────────────────────────────────────────
 	r.Route("/api", func(r chi.Router) {
-		// Домен: услуги
+		// AuthMiddleware применяется ко всем /api маршрутам
+		r.Use(api.AuthMiddleware)
+
+		// ── Публичные (без авторизации) ─────────────────────────
 		r.Get("/works", api.GetWorks)
 		r.Get("/works/{id}", api.GetWork)
-		r.Post("/works", api.CreateWork)
-
-		// Домен: корзина и заявки
-		r.Get("/publishing-orders/cart", api.GetCart)
 		r.Get("/publishing-orders", api.GetOrders)
-		r.Get("/publishing-orders/{id}", api.GetOrder)
-		r.Put("/publishing-orders/{id}", api.UpdateOrder)
-		r.Put("/publishing-orders/{id}/submit", api.SubmitOrder)
-		r.Put("/publishing-orders/{id}/moderate", api.ModerateOrder)
-		r.Delete("/publishing-orders/{id}", api.DeleteOrder)
-
-		// Домен: М-М (услуги в заявке)
-		r.Post("/publishing-orders/cart/works", api.AddWorkToOrder)
-		r.Put("/publishing-orders/{id}/works/{workId}", api.UpdateOrderWork)
-		r.Delete("/publishing-orders/{id}/works/{workId}", api.RemoveWorkFromOrder)
-
-		// Домен: пользователи
 		r.Post("/auth/register", api.Register)
 		r.Post("/auth/login", api.Login)
 		r.Post("/auth/logout", api.Logout)
+
+		// ── Требуется авторизация (creator + moderator) ──────────
+		r.Group(func(r chi.Router) {
+			r.Use(api.RequireAuth)
+
+			r.Post("/works", api.CreateWork)
+
+			r.Get("/publishing-orders/cart", api.GetCart)
+			r.Get("/publishing-orders/{id}", api.GetOrder)
+			r.Put("/publishing-orders/{id}", api.UpdateOrder)
+			r.Put("/publishing-orders/{id}/submit", api.SubmitOrder)
+			r.Delete("/publishing-orders/{id}", api.DeleteOrder)
+
+			r.Post("/publishing-orders/cart/works", api.AddWorkToOrder)
+			r.Put("/publishing-orders/{id}/works/{workId}", api.UpdateOrderWork)
+			r.Delete("/publishing-orders/{id}/works/{workId}", api.RemoveWorkFromOrder)
+
+			// ── Только модератор ────────────────────────────────
+			r.Group(func(r chi.Router) {
+				r.Use(api.RequireModerator)
+				r.Put("/publishing-orders/{id}/moderate", api.ModerateOrder)
+			})
+		})
 	})
 
 	log.Println("Сервер запущен: http://localhost:8080")

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"publishing-backend/db"
 	"publishing-backend/models"
@@ -10,8 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ─── POST /api/auth/register ──────────────────────────────────────────────────
-// Реальная регистрация: логин, пароль (bcrypt), имя, роль
 // Register godoc
 // @Summary     Регистрация
 // @Description Создаёт нового пользователя с хэшированным паролем
@@ -28,26 +27,23 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		Login    string `json:"login"`
 		Password string `json:"password"`
 		Name     string `json:"name"`
-		Role     string `json:"role"` // "creator" или "moderator"
+		Role     string `json:"role"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "некорректный JSON")
 		return
 	}
-
 	if body.Login == "" || body.Password == "" || body.Name == "" {
 		writeError(w, http.StatusBadRequest, "login, password и name обязательны")
 		return
 	}
 
-	// Проверяем что логин не занят
 	var existing models.User
 	if db.DB.Where("login = ?", body.Login).First(&existing).Error == nil {
 		writeError(w, http.StatusConflict, "пользователь с таким логином уже существует")
 		return
 	}
 
-	// Хэшируем пароль
 	hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка хэширования пароля")
@@ -78,32 +74,88 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ─── POST /api/auth/login ─────────────────────────────────────────────────────
-// Заглушка для лаб. 4 (JWT будет добавлен позже)
 // Login godoc
-// @Summary     Аутентификация (заглушка)
-// @Description Заглушка для лаб. 4, JWT будет добавлен позже
+// @Summary     Аутентификация
+// @Description Проверяет логин/пароль, создаёт сессию в Redis, устанавливает куку session_id
 // @Tags        auth
+// @Accept      json
 // @Produce     json
-// @Success     200 {object} map[string]string
+// @Param       body body object true "login, password"
+// @Success     200  {object} map[string]interface{}
+// @Failure     400  {object} map[string]string
+// @Failure     401  {object} map[string]string
 // @Router      /auth/login [post]
 func Login(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{
-		"message": "ok (заглушка, JWT будет в лаб. 4)",
+	var body struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "некорректный JSON")
+		return
+	}
+	if body.Login == "" || body.Password == "" {
+		writeError(w, http.StatusBadRequest, "login и password обязательны")
+		return
+	}
+
+	var user models.User
+	if db.DB.Where("login = ?", body.Login).First(&user).Error != nil {
+		writeError(w, http.StatusUnauthorized, "неверный логин или пароль")
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
+		writeError(w, http.StatusUnauthorized, "неверный логин или пароль")
+		return
+	}
+
+	sessionID, err := CreateSession(user.ID, user.Login, string(user.Role))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "ошибка создания сессии")
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Now().Add(24 * time.Hour),
+	})
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message":    "успешная авторизация",
+		"session_id": sessionID, // для использования в Insomnia через header Authorization
+		"user": map[string]any{
+			"id":    user.ID,
+			"login": user.Login,
+			"role":  user.Role,
+		},
 	})
 }
 
-// ─── POST /api/auth/logout ────────────────────────────────────────────────────
-// Заглушка для лаб. 4
 // Logout godoc
-// @Summary     Деавторизация (заглушка)
-// @Description Заглушка для лаб. 4
+// @Summary     Деавторизация
+// @Description Удаляет сессию из Redis и очищает куку
 // @Tags        auth
 // @Produce     json
 // @Success     200 {object} map[string]string
 // @Router      /auth/logout [post]
 func Logout(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{
-		"message": "ok (заглушка, JWT будет в лаб. 4)",
+	cookie, err := r.Cookie(sessionCookieName)
+	if err == nil {
+		_ = DeleteSession(cookie.Value)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
 	})
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "выход выполнен"})
 }

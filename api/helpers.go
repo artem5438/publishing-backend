@@ -5,12 +5,14 @@ import (
 	"net/http"
 )
 
-// ─── Singleton: текущий пользователь (константа до лаб. 4) ──────────────────
+// ─── Singleton: текущий пользователь ─────────────────────────────────────────
+// В лаб. 4 берём из сессии. Если сессии нет — fallback на константу 1 (для SSR).
 
-const creatorIDConst uint = 1
-
-func getCreatorID() uint {
-	return creatorIDConst
+func getCreatorID(r *http.Request) uint {
+	if id, ok := GetUserIDFromCtx(r); ok {
+		return id
+	}
+	return 1 // fallback для SSR-маршрутов
 }
 
 // ─── JSON-хелперы ─────────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ import (
 // @Failure     404  {object} map[string]string
 // @Router      /publishing-orders/cart/works [post]
 func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 
 	var body struct {
 		WorkID uint `json:"work_id"`
@@ -96,7 +96,7 @@ func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
 // @Failure     404    {object} map[string]string
 // @Router      /publishing-orders/{id}/works/{workId} [put]
 func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 
 	orderID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || orderID == 0 {
@@ -165,7 +165,7 @@ func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 // @Failure     404    {object} map[string]string
 // @Router      /publishing-orders/{id}/works/{workId} [delete]
 func RemoveWorkFromOrder(w http.ResponseWriter, r *http.Request) {
-	creatorID := getCreatorID()
+	creatorID := getCreatorID(r)
 
 	orderID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || orderID == 0 {

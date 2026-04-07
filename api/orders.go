@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -123,20 +124,38 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 // ─── GET /api/publishing-orders ───────────────────────────────────────────────
 // GetOrders godoc
 // @Summary     Список заявок
-// @Description Список без черновиков и удалённых. Фильтр по статусу и диапазону даты формирования.
+// @Description Список без черновиков и удалённых. Создатель видит только свои заявки, модератор — все.
 // @Tags        orders
 // @Produce     json
 // @Param       status query string false "Статус (formed/completed/rejected)"
 // @Param       from   query string false "Дата от (2006-01-02)"
 // @Param       to     query string false "Дата до (2006-01-02)"
 // @Success     200 {array}  OrderResponse
+// @Failure     401 {object} map[string]string
+// @Security    CookieAuth
 // @Router      /publishing-orders [get]
 func GetOrders(w http.ResponseWriter, r *http.Request) {
+	userID, authenticated := GetUserIDFromCtx(r)
+	role := GetUserRoleFromCtx(r)
+
+	log.Printf("[GetOrders] authenticated=%v userID=%v role=%v cookie=%v",
+		authenticated, userID, role, r.Header.Get("Cookie"))
+
+	if !authenticated {
+		writeError(w, http.StatusUnauthorized, "требуется авторизация")
+		return
+	}
+
 	q := db.DB.
 		Preload("Creator").
 		Preload("Moderator").
 		Preload("Works").
 		Where("status != ? AND status != ?", models.StatusDraft, models.StatusDeleted)
+
+	// Создатель видит только свои заявки
+	if role != string(models.RoleModerator) {
+		q = q.Where("creator_id = ?", userID)
+	}
 
 	// Фильтр по статусу
 	if status := r.URL.Query().Get("status"); status != "" {
@@ -153,7 +172,6 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	if to := r.URL.Query().Get("to"); to != "" {
 		t, err := time.Parse("2006-01-02", to)
 		if err == nil {
-			// до конца дня включительно
 			q = q.Where("formed_at <= ?", t.Add(24*time.Hour-time.Second))
 		}
 	}

@@ -160,13 +160,11 @@ func main() {
 
 	// ── REST API маршруты (лаб. 3) ────────────────────────────────────────────
 	r.Route("/api", func(r chi.Router) {
-		// AuthMiddleware применяется ко всем /api маршрутам
 		r.Use(api.AuthMiddleware)
 
 		// ── Публичные (без авторизации) ─────────────────────────
 		r.Get("/works", api.GetWorks)
 		r.Get("/works/{id}", api.GetWork)
-		r.Get("/publishing-orders", api.GetOrders)
 		r.Post("/auth/register", api.Register)
 		r.Post("/auth/login", api.Login)
 		r.Post("/auth/logout", api.Logout)
@@ -177,6 +175,7 @@ func main() {
 
 			r.Post("/works", api.CreateWork)
 
+			r.Get("/publishing-orders", api.GetOrders) // ← сюда
 			r.Get("/publishing-orders/cart", api.GetCart)
 			r.Get("/publishing-orders/{id}", api.GetOrder)
 			r.Put("/publishing-orders/{id}", api.UpdateOrder)

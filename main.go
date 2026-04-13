@@ -140,6 +140,22 @@ func main() {
 	db.ConnectRedis()
 
 	r := chi.NewRouter()
+
+	// ── CORS (для фронтенда на localhost:5173) ────────────────────────────────
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// ── Swagger UI ────────────────────────────────────────────────────────────
@@ -175,7 +191,7 @@ func main() {
 
 			r.Post("/works", api.CreateWork)
 
-			r.Get("/publishing-orders", api.GetOrders) // ← сюда
+			r.Get("/publishing-orders", api.GetOrders)
 			r.Get("/publishing-orders/cart", api.GetCart)
 			r.Get("/publishing-orders/{id}", api.GetOrder)
 			r.Put("/publishing-orders/{id}", api.UpdateOrder)

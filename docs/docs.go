@@ -146,7 +146,12 @@ const docTemplate = `{
         },
         "/publishing-orders": {
             "get": {
-                "description": "Список без черновиков и удалённых. Фильтр по статусу и диапазону даты формирования.",
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Список без черновиков и удалённых. Создатель видит только свои заявки, модератор — все.",
                 "produces": [
                     "application/json"
                 ],
@@ -181,6 +186,15 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/api.OrderResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     }
@@ -657,7 +671,7 @@ const docTemplate = `{
                         "CookieAuth": []
                     }
                 ],
-                "description": "Возвращает все активные услуги. Поддерживает фильтр по названию. Результат кэшируется в Redis на 60 сек.",
+                "description": "Возвращает активные услуги. Поддерживает фильтры. Без фильтров кешируется в Redis 60s.",
                 "produces": [
                     "application/json"
                 ],
@@ -668,8 +682,26 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Фильтр по названию",
+                        "description": "Поиск по названию",
                         "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Минимальная цена",
+                        "name": "minPrice",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимальная цена",
+                        "name": "maxPrice",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тип работы",
+                        "name": "workType",
                         "in": "query"
                     }
                 ],

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -91,21 +92,29 @@ func toWorkResponse(m models.Work) WorkResponse {
 }
 
 // GetWorks godoc
-// @Summary     Список услуг
-// @Description Возвращает все активные услуги. Поддерживает фильтр по названию. Результат кэшируется в Redis на 60 сек.
-// @Tags        works
-// @Produce     json
-// @Param       query query string false "Фильтр по названию"
-// @Success     200 {array}  WorkResponse
+// @Summary Список услуг
+// @Description Возвращает активные услуги. Поддерживает фильтры. Без фильтров кешируется в Redis 60s.
+// @Tags works
+// @Produce json
+// @Param query query string false "Поиск по названию"
+// @Param minPrice query int false "Минимальная цена"
+// @Param maxPrice query int false "Максимальная цена"
+// @Param workType query string false "Тип работы"
+// @Success 200 {array} WorkResponse
 // @Security CookieAuth
-// @Router      /works [get]
+// @Router /works [get]
 func GetWorks(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))
+	minPrice := r.URL.Query().Get("minPrice")
+	maxPrice := r.URL.Query().Get("maxPrice")
+	workType := r.URL.Query().Get("workType")
+
 	ctx := context.Background()
 
-	if query == "" {
-		cached, err := db.Redis.Get(ctx, worksRedisKey).Result()
-		if err == nil {
+	// Кешируем только если нет ни одного фильтра
+	hasFilters := query != "" || minPrice != "" || maxPrice != "" || workType != ""
+	if !hasFilters {
+		if cached, err := db.Redis.Get(ctx, worksRedisKey).Result(); err == nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("X-Cache", "HIT")
 			w.WriteHeader(http.StatusOK)
@@ -116,11 +125,26 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var dbWorks []models.Work
 	tx := db.DB.Where("status = ?", models.WorkStatusActive)
+
 	if query != "" {
 		tx = tx.Where("LOWER(name) LIKE ?", "%"+query+"%")
 	}
+	if minPrice != "" {
+		if v, err := strconv.Atoi(minPrice); err == nil {
+			tx = tx.Where("pricerub >= ?", v)
+		}
+	}
+	if maxPrice != "" {
+		if v, err := strconv.Atoi(maxPrice); err == nil {
+			tx = tx.Where("pricerub <= ?", v)
+		}
+	}
+	if workType != "" {
+		tx = tx.Where("worktype = ?", workType)
+	}
+
+	var dbWorks []models.Work
 	tx.Find(&dbWorks)
 
 	result := make([]WorkResponse, 0, len(dbWorks))
@@ -128,12 +152,12 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 		result = append(result, toWorkResponse(item))
 	}
 
-	if query == "" {
+	// Кешируем только чистый список без фильтров
+	if !hasFilters {
 		if jsonBytes, err := json.Marshal(result); err == nil {
-			if err := db.Redis.Set(ctx, worksRedisKey, string(jsonBytes), 60*time.Second).Err(); err == nil {
-				w.Header().Set("X-Cache", "MISS")
-			}
+			_ = db.Redis.Set(ctx, worksRedisKey, string(jsonBytes), 60*time.Second).Err()
 		}
+		w.Header().Set("X-Cache", "MISS")
 	}
 
 	writeJSON(w, http.StatusOK, result)

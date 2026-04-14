@@ -197,8 +197,8 @@ paths:
       - auth
   /publishing-orders:
     get:
-      description: Список без черновиков и удалённых. Фильтр по статусу и диапазону
-        даты формирования.
+      description: Список без черновиков и удалённых. Создатель видит только свои
+        заявки, модератор — все.
       parameters:
       - description: Статус (formed/completed/rejected)
         in: query
@@ -221,6 +221,14 @@ paths:
             items:
               $ref: '#/definitions/api.OrderResponse'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - CookieAuth: []
       summary: Список заявок
       tags:
       - orders
@@ -524,12 +532,24 @@ paths:
       - order-works
   /works:
     get:
-      description: Возвращает все активные услуги. Поддерживает фильтр по названию.
-        Результат кэшируется в Redis на 60 сек.
+      description: Возвращает активные услуги. Поддерживает фильтры. Без фильтров
+        кешируется в Redis 60s.
       parameters:
-      - description: Фильтр по названию
+      - description: Поиск по названию
         in: query
         name: query
+        type: string
+      - description: Минимальная цена
+        in: query
+        name: minPrice
+        type: integer
+      - description: Максимальная цена
+        in: query
+        name: maxPrice
+        type: integer
+      - description: Тип работы
+        in: query
+        name: workType
         type: string
       produces:
       - application/json

@@ -132,16 +132,16 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 	}
 	if minPrice != "" {
 		if v, err := strconv.Atoi(minPrice); err == nil {
-			tx = tx.Where("pricerub >= ?", v)
+			tx = tx.Where("price_rub >= ?", v)
 		}
 	}
 	if maxPrice != "" {
 		if v, err := strconv.Atoi(maxPrice); err == nil {
-			tx = tx.Where("pricerub <= ?", v)
+			tx = tx.Where("price_rub <= ?", v)
 		}
 	}
 	if workType != "" {
-		tx = tx.Where("worktype = ?", workType)
+		tx = tx.Where("work_type = ?", workType)
 	}
 
 	var dbWorks []models.Work

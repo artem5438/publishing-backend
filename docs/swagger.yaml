@@ -105,7 +105,10 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: REST API для книжного издательства (лаб. 4)
+  description: REST API для книжного издательства (лаб. 4). Swagger UI на том же host:port,
+    что и API, отправляет обычные браузерные куки — после входа остаётся auth_token,
+    и запросы идут как у авторизованного пользователя. Чтобы проверить сценарий гостя,
+    удалите куки для этого origin или откройте приватное окно.
   title: Publishing Backend API
   version: "2.0"
 paths:
@@ -262,7 +265,9 @@ paths:
       tags:
       - orders
     get:
-      description: Возвращает заявку с полным списком услуг и картинками
+      description: 'Возвращает заявку с полным списком услуг и картинками. Доступ:
+        свой черновик; сформированные и прочие — создателю своих или модератору (чужие
+        черновики недоступны).'
       parameters:
       - description: ID заявки
         in: path
@@ -276,6 +281,12 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.OrderResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -687,6 +698,6 @@ paths:
 securityDefinitions:
   CookieAuth:
     in: cookie
-    name: session_id
+    name: auth_token
     type: apiKey
 swagger: "2.0"

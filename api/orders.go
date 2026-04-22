@@ -190,11 +190,12 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 // ─── GET /api/publishing-orders/{id} ─────────────────────────────────────────
 // GetOrder godoc
 // @Summary     Одна заявка
-// @Description Возвращает заявку с полным списком услуг и картинками
+// @Description Возвращает заявку с полным списком услуг и картинками. Доступ: свой черновик; сформированные и прочие — создателю своих или модератору (чужие черновики недоступны).
 // @Tags        orders
 // @Produce     json
 // @Param       id path int true "ID заявки"
 // @Success     200 {object} OrderResponse
+// @Failure     401 {object} map[string]string
 // @Failure     404 {object} map[string]string
 // @Security CookieAuth
 // @Router      /publishing-orders/{id} [get]
@@ -210,6 +211,17 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 		First(&order)
 
 	if res.Error != nil {
+		writeError(w, http.StatusNotFound, "заявка не найдена")
+		return
+	}
+
+	userID, ok := GetUserIDFromCtx(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "требуется авторизация")
+		return
+	}
+	role := GetUserRoleFromCtx(r)
+	if !OrderVisibleToUser(&order, userID, role) {
 		writeError(w, http.StatusNotFound, "заявка не найдена")
 		return
 	}
@@ -410,4 +422,18 @@ func DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "заявка удалена"})
+}
+
+// OrderVisibleToUser — правила чтения заявки (согласованы со списком GetOrders).
+func OrderVisibleToUser(order *models.PublishingOrder, userID uint, role string) bool {
+	if order.Status == models.StatusDeleted {
+		return false
+	}
+	if order.Status == models.StatusDraft {
+		return order.CreatorID == userID
+	}
+	if role == string(models.RoleModerator) {
+		return true
+	}
+	return order.CreatorID == userID
 }

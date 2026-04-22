@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "REST API для книжного издательства (лаб. 4)",
+        "description": "REST API для книжного издательства (лаб. 4). Swagger UI на том же host:port, что и API, отправляет обычные браузерные куки — после входа остаётся auth_token, и запросы идут как у авторизованного пользователя. Чтобы проверить сценарий гостя, удалите куки для этого origin или откройте приватное окно.",
         "title": "Publishing Backend API",
         "contact": {},
         "version": "2.0"
@@ -286,7 +286,7 @@
                         "CookieAuth": []
                     }
                 ],
-                "description": "Возвращает заявку с полным списком услуг и картинками",
+                "description": "Возвращает заявку с полным списком услуг и картинками. Доступ: свой черновик; сформированные и прочие — создателю своих или модератору (чужие черновики недоступны).",
                 "produces": [
                     "application/json"
                 ],
@@ -308,6 +308,15 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/api.OrderResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
@@ -1043,7 +1052,7 @@
     "securityDefinitions": {
         "CookieAuth": {
             "type": "apiKey",
-            "name": "session_id",
+            "name": "auth_token",
             "in": "cookie"
         }
     }

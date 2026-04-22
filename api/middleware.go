@@ -80,6 +80,24 @@ func parseJWTFromRequest(r *http.Request) (*jwt.Token, error) {
 	return token, nil
 }
 
+// CredentialsFromRequest — user id и роль из валидного JWT (Authorization: Bearer или кука auth_token).
+func CredentialsFromRequest(r *http.Request) (userID uint, role string, ok bool) {
+	token, err := parseJWTFromRequest(r)
+	if err != nil || !token.Valid {
+		return 0, "", false
+	}
+	claims, okClaims := token.Claims.(jwt.MapClaims)
+	if !okClaims {
+		return 0, "", false
+	}
+	userIDFloat, okID := claims["user_id"].(float64)
+	if !okID || userIDFloat <= 0 {
+		return 0, "", false
+	}
+	role, _ = claims["user_role"].(string)
+	return uint(userIDFloat), role, true
+}
+
 func isPublicServicesGet(r *http.Request) bool {
 	if r.Method != http.MethodGet {
 		return false

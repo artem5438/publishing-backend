@@ -1,12 +1,12 @@
 // @title           Publishing Backend API
 // @version         2.0
-// @description     REST API для книжного издательства (лаб. 4)
+// @description     REST API для книжного издательства (лаб. 4). Swagger UI на том же host:port, что и API, отправляет обычные браузерные куки — после входа остаётся auth_token, и запросы идут как у авторизованного пользователя. Чтобы проверить сценарий гостя, удалите куки для этого origin или откройте приватное окно.
 // @host            localhost:8080
 // @BasePath        /api
 
 // @securityDefinitions.apikey CookieAuth
 // @in cookie
-// @name session_id
+// @name auth_token
 
 package main
 
@@ -294,6 +294,12 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 // ─── SSR: GET /publishing-orders/{id} ───────────────────────────────────────
 
 func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
+	uid, role, authed := api.CredentialsFromRequest(r)
+	if !authed {
+		http.Error(w, "требуется авторизация", http.StatusUnauthorized)
+		return
+	}
+
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
 	var dbOrder models.PublishingOrder
@@ -301,6 +307,11 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 		Preload("Works.Work").
 		First(&dbOrder)
 	if res.Error != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if !api.OrderVisibleToUser(&dbOrder, uid, role) {
 		http.NotFound(w, r)
 		return
 	}

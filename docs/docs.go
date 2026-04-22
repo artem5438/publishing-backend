@@ -292,7 +292,7 @@ const docTemplate = `{
                         "CookieAuth": []
                     }
                 ],
-                "description": "Возвращает заявку с полным списком услуг и картинками",
+                "description": "Возвращает заявку с полным списком услуг и картинками. Доступ: свой черновик; сформированные и прочие — создателю своих или модератору (чужие черновики недоступны).",
                 "produces": [
                     "application/json"
                 ],
@@ -314,6 +314,15 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/api.OrderResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
@@ -1049,7 +1058,7 @@ const docTemplate = `{
     "securityDefinitions": {
         "CookieAuth": {
             "type": "apiKey",
-            "name": "session_id",
+            "name": "auth_token",
             "in": "cookie"
         }
     }
@@ -1062,7 +1071,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Publishing Backend API",
-	Description:      "REST API для книжного издательства (лаб. 4)",
+	Description:      "REST API для книжного издательства (лаб. 4). Swagger UI на том же host:port, что и API, отправляет обычные браузерные куки — после входа остаётся auth_token, и запросы идут как у авторизованного пользователя. Чтобы проверить сценарий гостя, удалите куки для этого origin или откройте приватное окно.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

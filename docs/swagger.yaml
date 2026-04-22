@@ -560,6 +560,12 @@ paths:
             items:
               $ref: '#/definitions/api.WorkResponse'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       security:
       - CookieAuth: []
       summary: Список услуг
@@ -661,12 +667,20 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.WorkResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "404":
           description: Not Found
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - CookieAuth: []
       summary: Одна услуга
       tags:
       - works

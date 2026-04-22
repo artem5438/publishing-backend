@@ -178,9 +178,7 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(api.AuthMiddleware)
 
-		// ── Публичные (без авторизации) ─────────────────────────
-		r.Get("/works", api.GetWorks)
-		r.Get("/works/{id}", api.GetWork)
+		// ── Публичные (без авторизации): только auth ──────────────
 		r.Post("/auth/register", api.Register)
 		r.Post("/auth/login", api.Login)
 		r.Post("/auth/logout", api.Logout)
@@ -189,6 +187,8 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(api.RequireAuth)
 
+			r.Get("/works", api.GetWorks)
+			r.Get("/works/{id}", api.GetWork)
 			r.Post("/works", api.CreateWork)
 
 			r.Get("/publishing-orders", api.GetOrders)

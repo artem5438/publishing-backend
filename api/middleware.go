@@ -3,11 +3,15 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"publishing-backend/db"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -31,6 +35,70 @@ type SessionData struct {
 
 const sessionTTL = 24 * time.Hour
 const sessionCookieName = "session_id"
+const authTokenCookieName = "auth_token"
+
+func jwtSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return []byte("dev-jwt-secret")
+	}
+	return []byte(secret)
+}
+
+func parseJWTFromRequest(r *http.Request) (*jwt.Token, error) {
+	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	tokenString := ""
+
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		tokenString = strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	}
+
+	if tokenString == "" {
+		cookie, err := r.Cookie(authTokenCookieName)
+		if err != nil {
+			if errors.Is(err, http.ErrNoCookie) {
+				return nil, err
+			}
+			return nil, err
+		}
+		tokenString = strings.TrimSpace(cookie.Value)
+	}
+
+	if tokenString == "" {
+		return nil, jwt.ErrTokenMalformed
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrTokenSignatureInvalid
+		}
+		return jwtSecret(), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+func isPublicServicesGet(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	path := r.URL.Path
+	return path == "/api/services" || strings.HasPrefix(path, "/api/services/")
+}
+
+func isPublicAuthEndpoint(r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		return false
+	}
+	switch r.URL.Path {
+	case "/api/auth/login", "/api/auth/register", "/api/auth/logout":
+		return true
+	default:
+		return false
+	}
+}
 
 // ─── Создать сессию в Redis, вернуть session_id ───────────────────────────────
 
@@ -77,19 +145,42 @@ func DeleteSession(sessionID string) error {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(sessionCookieName)
-		if err != nil {
+		if isPublicServicesGet(r) || isPublicAuthEndpoint(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		session, err := GetSession(cookie.Value)
+
+		token, err := parseJWTFromRequest(r)
 		if err != nil {
-			next.ServeHTTP(w, r)
+			if errors.Is(err, http.ErrNoCookie) {
+				writeError(w, http.StatusUnauthorized, "требуется авторизация")
+				return
+			}
+			writeError(w, http.StatusUnauthorized, "некорректный токен")
 			return
 		}
-		ctx := context.WithValue(r.Context(), ctxUserID, session.UserID)
-		ctx = context.WithValue(ctx, ctxUserRole, session.UserRole)
-		ctx = context.WithValue(ctx, ctxUserLogin, session.UserLogin)
+		if !token.Valid {
+			writeError(w, http.StatusUnauthorized, "некорректный токен")
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "некорректный токен")
+			return
+		}
+
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok || userIDFloat <= 0 {
+			writeError(w, http.StatusUnauthorized, "некорректный токен")
+			return
+		}
+		userRole, _ := claims["user_role"].(string)
+		userLogin, _ := claims["user_login"].(string)
+
+		ctx := context.WithValue(r.Context(), ctxUserID, uint(userIDFloat))
+		ctx = context.WithValue(ctx, ctxUserRole, userRole)
+		ctx = context.WithValue(ctx, ctxUserLogin, userLogin)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -8,6 +8,7 @@ import (
 	"publishing-backend/db"
 	"publishing-backend/models"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -116,6 +117,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":    user.ID,
+		"user_login": user.Login,
+		"user_role":  string(user.Role),
+		"exp":        time.Now().Add(24 * time.Hour).Unix(),
+	}).SignedString(jwtSecret())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "ошибка создания токена")
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    sessionID,
@@ -123,10 +135,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     authTokenCookieName,
+		Value:    tokenString,
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Now().Add(24 * time.Hour),
+	})
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"message":    "успешная авторизация",
-		"session_id": sessionID, // для использования в Insomnia через header Authorization
+		"session_id": sessionID,
+		"token":      tokenString,
 		"user": map[string]any{
 			"id":    user.ID,
 			"login": user.Login,
@@ -150,6 +170,14 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     authTokenCookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,

@@ -708,6 +708,15 @@
                                 "$ref": "#/definitions/api.WorkResponse"
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             },
@@ -832,6 +841,11 @@
         },
         "/works/{id}": {
             "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
                 "description": "Возвращает услугу по ID",
                 "produces": [
                     "application/json"
@@ -854,6 +868,15 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/api.WorkResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {

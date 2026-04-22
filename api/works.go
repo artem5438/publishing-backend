@@ -101,6 +101,7 @@ func toWorkResponse(m models.Work) WorkResponse {
 // @Param maxPrice query int false "Максимальная цена"
 // @Param workType query string false "Тип работы"
 // @Success 200 {array} WorkResponse
+// @Failure 401 {object} map[string]string
 // @Security CookieAuth
 // @Router /works [get]
 func GetWorks(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +171,9 @@ func GetWorks(w http.ResponseWriter, r *http.Request) {
 // @Produce     json
 // @Param       id path int true "ID услуги"
 // @Success     200 {object} WorkResponse
+// @Failure     401 {object} map[string]string
 // @Failure     404 {object} map[string]string
+// @Security    CookieAuth
 // @Router      /works/{id} [get]
 func GetWork(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

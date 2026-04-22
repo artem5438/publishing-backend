@@ -11,7 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// ─── POST /api/publishing-orders/{id}/works ───────────────────────────────────
+//	POST /api/publishing-orders/{id}/works
+//
 // Добавить услугу в заявку-черновик. Если черновика нет — создаётся автоматически.
 // AddWorkToOrder godoc
 // @Summary     Добавить услугу в корзину
@@ -81,7 +82,8 @@ func AddWorkToOrder(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ─── PUT /api/publishing-orders/{id}/works/{workId} ──────────────────────────
+//	PUT /api/publishing-orders/{id}/works/{workId}
+//
 // Изменить количество позиции в заявке (без PK м-м, ищем по order_id + work_id)
 // UpdateOrderWork godoc
 // @Summary     Изменить позицию в заявке
@@ -153,7 +155,8 @@ func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ─── DELETE /api/publishing-orders/{id}/works/{workId} ───────────────────────
+//	DELETE /api/publishing-orders/{id}/works/{workId}
+//
 // Удалить позицию из заявки (без PK м-м)
 // RemoveWorkFromOrder godoc
 // @Summary     Удалить услугу из заявки

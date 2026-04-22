@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// ─── Ключи контекста ──────────────────────────────────────────────────────────
+//  Ключи контекста
 
 type contextKey string
 
@@ -25,7 +25,7 @@ const (
 	ctxUserLogin contextKey = "userLogin"
 )
 
-// ─── Структура сессии в Redis ─────────────────────────────────────────────────
+//  Структура сессии в Redis
 
 type SessionData struct {
 	UserID    uint   `json:"user_id"`
@@ -118,7 +118,7 @@ func isPublicAuthEndpoint(r *http.Request) bool {
 	}
 }
 
-// ─── Создать сессию в Redis, вернуть session_id ───────────────────────────────
+//  Создать сессию в Redis, вернуть session_id ─
 
 func CreateSession(userID uint, login, role string) (string, error) {
 	sessionID := uuid.New().String()
@@ -138,7 +138,7 @@ func CreateSession(userID uint, login, role string) (string, error) {
 	return sessionID, nil
 }
 
-// ─── Получить данные сессии из Redis ─────────────────────────────────────────
+//  Получить данные сессии из Redis
 
 func GetSession(sessionID string) (*SessionData, error) {
 	val, err := db.Redis.Get(context.Background(), "session:"+sessionID).Result()
@@ -152,13 +152,13 @@ func GetSession(sessionID string) (*SessionData, error) {
 	return &data, nil
 }
 
-// ─── Удалить сессию из Redis ──────────────────────────────────────────────────
+//  Удалить сессию из Redis
 
 func DeleteSession(sessionID string) error {
 	return db.Redis.Del(context.Background(), "session:"+sessionID).Err()
 }
 
-// ─── Middleware: читает куку, кладёт userID и role в контекст ─────────────────
+//  Middleware: читает куку, кладёт userID и role в контекст
 // Если куки нет или сессия невалидна — продолжает без пользователя (гостевой доступ)
 
 func AuthMiddleware(next http.Handler) http.Handler {
@@ -203,7 +203,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// ─── Требовать авторизацию (401 если нет) ────────────────────────────────────
+//  Требовать авторизацию (401 если нет)
 
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +215,7 @@ func RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// ─── Требовать роль модератора (403 если не модератор) ───────────────────────
+//  Требовать роль модератора (403 если не модератор)
 
 func RequireModerator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -228,7 +228,7 @@ func RequireModerator(next http.Handler) http.Handler {
 	})
 }
 
-// ─── Хелперы для получения данных из контекста ───────────────────────────────
+//  Хелперы для получения данных из контекста ─
 
 func GetUserIDFromCtx(r *http.Request) (uint, bool) {
 	val, ok := r.Context().Value(ctxUserID).(uint)

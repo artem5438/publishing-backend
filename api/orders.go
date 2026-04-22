@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// ─── Response-структуры ───────────────────────────────────────────────────────
+//  Response-структуры
 
 type OrderWorkResponse struct {
 	WorkID   uint   `json:"work_id"`
@@ -90,7 +90,8 @@ func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse 
 	return resp
 }
 
-// ─── GET /api/publishing-orders/cart ─────────────────────────────────────────
+//	GET /api/publishing-orders/cart
+//
 // GetCart godoc
 // @Summary     Иконка корзины
 // @Description Возвращает id черновика и количество услуг в нём
@@ -121,7 +122,8 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
 }
 
-// ─── GET /api/publishing-orders ───────────────────────────────────────────────
+//	GET /api/publishing-orders
+//
 // GetOrders godoc
 // @Summary     Список заявок
 // @Description Список без черновиков и удалённых. Создатель видит только свои заявки, модератор — все.
@@ -187,7 +189,8 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// ─── GET /api/publishing-orders/{id} ─────────────────────────────────────────
+//	GET /api/publishing-orders/{id}
+//
 // GetOrder godoc
 // @Summary     Одна заявка
 // @Description Возвращает заявку с полным списком услуг и картинками. Доступ: свой черновик; сформированные и прочие — создателю своих или модератору (чужие черновики недоступны).
@@ -229,7 +232,8 @@ func GetOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
 }
 
-// ─── PUT /api/publishing-orders/{id} ─────────────────────────────────────────
+//	PUT /api/publishing-orders/{id}
+//
 // UpdateOrder godoc
 // @Summary     Изменить заявку
 // @Description Изменяет тематические поля черновика (book_title, circulation)
@@ -273,7 +277,8 @@ func UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
 }
 
-// ─── PUT /api/publishing-orders/{id}/submit ───────────────────────────────────
+//	PUT /api/publishing-orders/{id}/submit
+//
 // SubmitOrder godoc
 // @Summary     Сформировать заявку
 // @Description Переводит черновик в статус formed. Проверяет обязательные поля и рассчитывает total_price.
@@ -333,7 +338,8 @@ func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
 }
 
-// ─── PUT /api/publishing-orders/{id}/moderate ────────────────────────────────
+//	PUT /api/publishing-orders/{id}/moderate
+//
 // ModerateOrder godoc
 // @Summary     Завершить или отклонить заявку
 // @Description Модератор завершает (complete) или отклоняет (reject) сформированную заявку
@@ -390,7 +396,8 @@ func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
 }
 
-// ─── DELETE /api/publishing-orders/{id} ───────────────────────────────────────
+//	DELETE /api/publishing-orders/{id}
+//
 // Логическое удаление черновика создателем
 // DeleteOrder godoc
 // @Summary     Удалить заявку

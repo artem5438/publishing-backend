@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// ─── Singleton: текущий пользователь ─────────────────────────────────────────
+//  Singleton: текущий пользователь
 // В лаб. 4 берём из сессии. Если сессии нет — fallback на константу 1 (для SSR).
 
 func getCreatorID(r *http.Request) uint {
@@ -15,7 +15,7 @@ func getCreatorID(r *http.Request) uint {
 	return 1 // fallback для SSR-маршрутов
 }
 
-// ─── JSON-хелперы ─────────────────────────────────────────────────────────────
+//  JSON-хелперы
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")

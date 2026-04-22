@@ -28,7 +28,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// ─── View-структуры (SSR) ────────────────────────────────────────────────────
+//  View-структуры (SSR)
 
 type WorkParams struct {
 	Deadline string
@@ -65,7 +65,7 @@ type PublishingOrder struct {
 	Circulation int
 }
 
-// ─── Вспомогательные функции (SSR) ──────────────────────────────────────────
+//  Вспомогательные функции (SSR) ─
 
 func strVal(s *string) string {
 	if s == nil {
@@ -115,7 +115,7 @@ func toViewOrder(m models.PublishingOrder) PublishingOrder {
 	}
 }
 
-// ─── Константы (SSR) ────────────────────────────────────────────────────────
+//  Константы (SSR)
 
 const minioURL = "http://localhost:9000/publishing-media"
 const creatorID = 1
@@ -132,7 +132,7 @@ func getCartInfo() (cartCount int, orderID int) {
 	return
 }
 
-// ─── main ────────────────────────────────────────────────────────────────────
+//  main ─
 
 func main() {
 	db.Connect()
@@ -141,7 +141,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	// ── CORS (для фронтенда на localhost:5173) ────────────────────────────────
+	//  CORS (для фронтенда на localhost:5173)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
@@ -158,12 +158,12 @@ func main() {
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	// ── Swagger UI ────────────────────────────────────────────────────────────
+	//  Swagger UI ─
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
 	))
 
-	// ── SSR маршруты (лаб. 1–2) ──────────────────────────────────────────────
+	//  SSR маршруты (лаб. 1–2)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/works", http.StatusSeeOther)
 	})
@@ -174,16 +174,16 @@ func main() {
 	r.Post("/publishing-orders/{id}/delete", deleteOrderHandler)
 	r.Post("/publishing-orders/{id}/update-work", updateWorkQuantityHandler)
 
-	// ── REST API маршруты (лаб. 3) ────────────────────────────────────────────
+	//  REST API маршруты (лаб. 3)
 	r.Route("/api", func(r chi.Router) {
 		r.Use(api.AuthMiddleware)
 
-		// ── Публичные (без авторизации): только auth ──────────────
+		//  Публичные (без авторизации): только auth
 		r.Post("/auth/register", api.Register)
 		r.Post("/auth/login", api.Login)
 		r.Post("/auth/logout", api.Logout)
 
-		// ── Требуется авторизация (creator + moderator) ──────────
+		//  Требуется авторизация (creator + moderator) ─
 		r.Group(func(r chi.Router) {
 			r.Use(api.RequireAuth)
 
@@ -202,7 +202,7 @@ func main() {
 			r.Put("/publishing-orders/{id}/works/{workId}", api.UpdateOrderWork)
 			r.Delete("/publishing-orders/{id}/works/{workId}", api.RemoveWorkFromOrder)
 
-			// ── Только модератор ────────────────────────────────
+			//  Только модератор
 			r.Group(func(r chi.Router) {
 				r.Use(api.RequireModerator)
 				r.Put("/publishing-orders/{id}/moderate", api.ModerateOrder)
@@ -220,7 +220,7 @@ func main() {
 	}
 }
 
-// ─── SSR: GET /works ─────────────────────────────────────────────────────────
+//  SSR: GET /works ─
 
 func worksListHandler(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("query"))
@@ -259,7 +259,7 @@ func worksListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ─── SSR: GET /works/{id} ────────────────────────────────────────────────────
+//  SSR: GET /works/{id}
 
 func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
@@ -291,7 +291,7 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ─── SSR: GET /publishing-orders/{id} ───────────────────────────────────────
+//  SSR: GET /publishing-orders/{id}
 
 func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 	uid, role, authed := api.CredentialsFromRequest(r)
@@ -330,7 +330,7 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ─── SSR: POST /publishing-orders/add-work ───────────────────────────────────
+//  SSR: POST /publishing-orders/add-work
 
 func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 	workID, err := strconv.Atoi(r.FormValue("work_id"))
@@ -367,7 +367,7 @@ func addWorkToOrderHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }
 
-// ─── SSR: POST /publishing-orders/{id}/delete ────────────────────────────────
+//  SSR: POST /publishing-orders/{id}/delete
 
 func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -384,7 +384,7 @@ func deleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/works", http.StatusSeeOther)
 }
 
-// ─── SSR: POST /publishing-orders/{id}/update-work ───────────────────────────
+//  SSR: POST /publishing-orders/{id}/update-work
 
 func updateWorkQuantityHandler(w http.ResponseWriter, r *http.Request) {
 	orderID, err := strconv.Atoi(chi.URLParam(r, "id"))

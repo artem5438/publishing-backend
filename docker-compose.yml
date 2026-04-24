@@ -38,6 +38,47 @@ services:
     ports:
       - "6379:6379"
 
+  backend:
+    build: .
+    container_name: publishing_backend_lab2
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: admin
+      DB_PASSWORD: secret
+      DB_NAME: lab2_db
+      REDIS_ADDR: redis:6379
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_lab2
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_lab2
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
 volumes:
   minio_data:
   pg_data:

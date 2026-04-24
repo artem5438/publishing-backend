@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -36,7 +35,8 @@ type OrderResponse struct {
 	CompletedAt    *time.Time          `json:"completed_at,omitempty"`
 	Works          []OrderWorkResponse `json:"works,omitempty"`
 	// Вычисляемое поле: кол-во позиций м-м с непустым комментарием
-	FilledWorksCount int `json:"filled_works_count"`
+	FilledWorksCount int    `json:"filled_works_count"`
+	UserRole         string `json:"user_role,omitempty"`
 }
 
 func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse {
@@ -115,11 +115,14 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 			"order_id":    nil,
 			"works_count": 0,
 			"works":       []interface{}{},
+			"user_role":   GetUserRoleFromCtx(r),
 		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toOrderResponse(order, true))
+	resp := toOrderResponse(order, true)
+	resp.UserRole = GetUserRoleFromCtx(r)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 //	GET /api/publishing-orders
@@ -140,8 +143,12 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	userID, authenticated := GetUserIDFromCtx(r)
 	role := GetUserRoleFromCtx(r)
 
-	log.Printf("[GetOrders] authenticated=%v userID=%v role=%v cookie=%v",
-		authenticated, userID, role, r.Header.Get("Cookie"))
+	Logger.Debug("GetOrders",
+		"authenticated", authenticated,
+		"user_id", userID,
+		"role", role,
+		"cookie", r.Header.Get("Cookie"),
+	)
 
 	if !authenticated {
 		writeError(w, http.StatusUnauthorized, "требуется авторизация")

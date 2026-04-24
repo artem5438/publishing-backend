@@ -25,6 +25,7 @@ import (
 	"publishing-backend/models"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -135,6 +136,8 @@ func getCartInfo() (cartCount int, orderID int) {
 //  main ─
 
 func main() {
+	api.InitLogger()
+
 	db.Connect()
 	db.Migrate()
 	db.ConnectRedis()
@@ -155,6 +158,11 @@ func main() {
 			next.ServeHTTP(w, r)
 		})
 	})
+
+	r.Use(api.LoggingMiddleware)
+	r.Use(api.MetricsMiddleware)
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 

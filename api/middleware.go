@@ -23,6 +23,7 @@ const (
 	ctxUserID    contextKey = "userID"
 	ctxUserRole  contextKey = "userRole"
 	ctxUserLogin contextKey = "userLogin"
+	ctxRequestID contextKey = "requestID"
 )
 
 //  Структура сессии в Redis
@@ -82,7 +83,7 @@ func parseJWTFromRequest(r *http.Request) (*jwt.Token, error) {
 
 // CredentialsFromRequest — user id и роль из валидного JWT (Authorization: Bearer или кука auth_token).
 func CredentialsFromRequest(r *http.Request) (userID uint, role string, ok bool) {
-	token, err := parseJWTFromRequest(r)
+	token, err := parseJWTFromRequest(r) // парсим токен из запроса
 	if err != nil || !token.Valid {
 		return 0, "", false
 	}
@@ -171,25 +172,49 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		token, err := parseJWTFromRequest(r)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
+				Logger.Warn(EventAuthTokenMissing,
+					"request_id", GetRequestIDFromCtx(r),
+					"method", r.Method, "path", r.URL.Path,
+					"client_ip", clientIP(r))
 				writeError(w, http.StatusUnauthorized, "требуется авторизация")
 				return
 			}
+			Logger.Warn(EventAuthTokenInvalid,
+				"request_id", GetRequestIDFromCtx(r),
+				"method", r.Method, "path", r.URL.Path,
+				"client_ip", clientIP(r),
+				"reason", "parse_error")
 			writeError(w, http.StatusUnauthorized, "некорректный токен")
 			return
 		}
 		if !token.Valid {
+			Logger.Warn(EventAuthTokenInvalid,
+				"request_id", GetRequestIDFromCtx(r),
+				"method", r.Method, "path", r.URL.Path,
+				"client_ip", clientIP(r),
+				"reason", "token_invalid")
 			writeError(w, http.StatusUnauthorized, "некорректный токен")
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
+			Logger.Warn(EventAuthTokenInvalid,
+				"request_id", GetRequestIDFromCtx(r),
+				"method", r.Method, "path", r.URL.Path,
+				"client_ip", clientIP(r),
+				"reason", "claims_type")
 			writeError(w, http.StatusUnauthorized, "некорректный токен")
 			return
 		}
 
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok || userIDFloat <= 0 {
+			Logger.Warn(EventAuthTokenInvalid,
+				"request_id", GetRequestIDFromCtx(r),
+				"method", r.Method, "path", r.URL.Path,
+				"client_ip", clientIP(r),
+				"reason", "missing_user_id")
 			writeError(w, http.StatusUnauthorized, "некорректный токен")
 			return
 		}
@@ -208,6 +233,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Context().Value(ctxUserID) == nil {
+			Logger.Warn(EventAuthTokenMissing,
+				"request_id", GetRequestIDFromCtx(r),
+				"method", r.Method, "path", r.URL.Path,
+				"client_ip", clientIP(r),
+				"stage", "require_auth")
 			writeError(w, http.StatusUnauthorized, "требуется авторизация")
 			return
 		}
@@ -221,6 +251,14 @@ func RequireModerator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		role, _ := r.Context().Value(ctxUserRole).(string)
 		if role != "moderator" {
+			uid, _ := GetUserIDFromCtx(r)
+			Logger.Warn(EventAuthzForbidden,
+				"request_id", GetRequestIDFromCtx(r),
+				"method", r.Method, "path", r.URL.Path,
+				"user_id", uid,
+				"user_role", role,
+				"required_role", "moderator",
+				"client_ip", clientIP(r))
 			writeError(w, http.StatusForbidden, "доступ только для модератора")
 			return
 		}
@@ -238,4 +276,10 @@ func GetUserIDFromCtx(r *http.Request) (uint, bool) {
 func GetUserRoleFromCtx(r *http.Request) string {
 	role, _ := r.Context().Value(ctxUserRole).(string)
 	return role
+}
+
+// GetRequestIDFromCtx — request_id, проставленный LoggingMiddleware (или "" если нет).
+func GetRequestIDFromCtx(r *http.Request) string {
+	id, _ := r.Context().Value(ctxRequestID).(string)
+	return id
 }

@@ -45,7 +45,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost) // хэшируем пароль
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка хэширования пароля")
 		return
@@ -66,6 +66,14 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "ошибка создания пользователя")
 		return
 	}
+
+	Logger.Info(EventUserCreated,
+		"request_id", GetRequestIDFromCtx(r),
+		"method", r.Method, "path", r.URL.Path,
+		"user_id", user.ID,
+		"login", user.Login,
+		"user_role", string(user.Role),
+		"client_ip", clientIP(r))
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"id":    user.ID,
@@ -102,11 +110,24 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	if db.DB.Where("login = ?", body.Login).First(&user).Error != nil {
+		Logger.Warn(EventAuthLoginFailed,
+			"request_id", GetRequestIDFromCtx(r),
+			"method", r.Method, "path", r.URL.Path,
+			"login", body.Login,
+			"reason", "user_not_found",
+			"client_ip", clientIP(r))
 		writeError(w, http.StatusUnauthorized, "неверный логин или пароль")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
+		Logger.Warn(EventAuthLoginFailed,
+			"request_id", GetRequestIDFromCtx(r),
+			"method", r.Method, "path", r.URL.Path,
+			"login", body.Login,
+			"user_id", user.ID,
+			"reason", "invalid_password",
+			"client_ip", clientIP(r))
 		writeError(w, http.StatusUnauthorized, "неверный логин или пароль")
 		return
 	}
@@ -117,7 +138,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{ // создаем токен
 		"user_id":    user.ID,
 		"user_login": user.Login,
 		"user_role":  string(user.Role),
@@ -142,6 +163,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
+
+	Logger.Info(EventAuthLoginSuccess,
+		"request_id", GetRequestIDFromCtx(r),
+		"method", r.Method, "path", r.URL.Path,
+		"user_id", user.ID,
+		"login", user.Login,
+		"user_role", string(user.Role),
+		"client_ip", clientIP(r))
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"message":    "успешная авторизация",

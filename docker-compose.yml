@@ -51,10 +51,22 @@ services:
       DB_PASSWORD: secret
       DB_NAME: lab2_db
       REDIS_ADDR: redis:6379
+      LOG_LEVEL: info
     depends_on:
       - postgres
       - redis
       - minio
+
+  frontend:
+    build:
+      context: ../publishing-frontend
+      dockerfile: Dockerfile
+    container_name: publishing_frontend_lab2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
   prometheus:
     image: prom/prometheus:latest

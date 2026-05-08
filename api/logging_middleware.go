@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// responseWriter перехватывает код статуса ответа.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
@@ -26,12 +25,6 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
-// LoggingMiddleware:
-//  1. Генерирует request_id (или берёт из X-Request-ID входящего запроса) и кладёт его в контекст.
-//  2. Возвращает X-Request-ID в ответе для сквозной трассировки.
-//  3. Логирует каждый запрос строкой "request" с уровнем по статусу
-//     (5xx Error, 4xx Warn, иначе Info) и набором полей по принципам лекции:
-//     кто/где/когда/route/trace_id/результат.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := r.Header.Get("X-Request-ID")

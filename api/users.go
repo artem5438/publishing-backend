@@ -164,7 +164,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
-	Logger.Info(EventAuthLoginSuccess,
+	Logger.Info(EventAuthLoginSuccess, // успешный вход
 		"request_id", GetRequestIDFromCtx(r),
 		"method", r.Method, "path", r.URL.Path,
 		"user_id", user.ID,

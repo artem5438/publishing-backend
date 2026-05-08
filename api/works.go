@@ -104,7 +104,7 @@ func toWorkResponse(m models.Work) WorkResponse {
 // @Failure 401 {object} map[string]string
 // @Security CookieAuth
 // @Router /works [get]
-func GetWorks(w http.ResponseWriter, r *http.Request) {
+func GetWorks(w http.ResponseWriter, r *http.Request) { // Получаем услуги из базы данных
 	query := strings.ToLower(r.URL.Query().Get("query"))
 	minPrice := r.URL.Query().Get("minPrice")
 	maxPrice := r.URL.Query().Get("maxPrice")

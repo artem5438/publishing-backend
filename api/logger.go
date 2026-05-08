@@ -26,6 +26,7 @@ func InitLogger() {
 	level := parseLogLevel(os.Getenv("LOG_LEVEL"))
 	h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	Logger = slog.New(h)
+	slog.SetDefault(Logger)
 }
 
 func parseLogLevel(s string) slog.Level {

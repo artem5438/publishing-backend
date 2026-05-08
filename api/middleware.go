@@ -23,7 +23,6 @@ const (
 	ctxUserID    contextKey = "userID"
 	ctxUserRole  contextKey = "userRole"
 	ctxUserLogin contextKey = "userLogin"
-	ctxRequestID contextKey = "requestID"
 )
 
 //  Структура сессии в Redis
@@ -172,15 +171,17 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		token, err := parseJWTFromRequest(r)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
-				Logger.Warn(EventAuthTokenMissing,
-					"request_id", GetRequestIDFromCtx(r),
+				Logger.Debug(EventAuthTokenMissing,
+					"event", EventAuthTokenMissing,
+					"outcome", "denied",
 					"method", r.Method, "path", r.URL.Path,
 					"client_ip", clientIP(r))
 				writeError(w, http.StatusUnauthorized, "требуется авторизация")
 				return
 			}
 			Logger.Warn(EventAuthTokenInvalid,
-				"request_id", GetRequestIDFromCtx(r),
+				"event", EventAuthTokenInvalid,
+				"outcome", "denied",
 				"method", r.Method, "path", r.URL.Path,
 				"client_ip", clientIP(r),
 				"reason", "parse_error")
@@ -189,7 +190,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 		if !token.Valid {
 			Logger.Warn(EventAuthTokenInvalid,
-				"request_id", GetRequestIDFromCtx(r),
+				"event", EventAuthTokenInvalid,
+				"outcome", "denied",
 				"method", r.Method, "path", r.URL.Path,
 				"client_ip", clientIP(r),
 				"reason", "token_invalid")
@@ -200,7 +202,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			Logger.Warn(EventAuthTokenInvalid,
-				"request_id", GetRequestIDFromCtx(r),
+				"event", EventAuthTokenInvalid,
+				"outcome", "denied",
 				"method", r.Method, "path", r.URL.Path,
 				"client_ip", clientIP(r),
 				"reason", "claims_type")
@@ -211,7 +214,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok || userIDFloat <= 0 {
 			Logger.Warn(EventAuthTokenInvalid,
-				"request_id", GetRequestIDFromCtx(r),
+				"event", EventAuthTokenInvalid,
+				"outcome", "denied",
 				"method", r.Method, "path", r.URL.Path,
 				"client_ip", clientIP(r),
 				"reason", "missing_user_id")
@@ -233,8 +237,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Context().Value(ctxUserID) == nil {
-			Logger.Warn(EventAuthTokenMissing,
-				"request_id", GetRequestIDFromCtx(r),
+			Logger.Debug(EventAuthTokenMissing,
+				"event", EventAuthTokenMissing,
+				"outcome", "denied",
 				"method", r.Method, "path", r.URL.Path,
 				"client_ip", clientIP(r),
 				"stage", "require_auth")
@@ -253,7 +258,8 @@ func RequireModerator(next http.Handler) http.Handler {
 		if role != "moderator" {
 			uid, _ := GetUserIDFromCtx(r)
 			Logger.Warn(EventAuthzForbidden,
-				"request_id", GetRequestIDFromCtx(r),
+				"event", EventAuthzForbidden,
+				"outcome", "denied",
 				"method", r.Method, "path", r.URL.Path,
 				"user_id", uid,
 				"user_role", role,
@@ -276,10 +282,4 @@ func GetUserIDFromCtx(r *http.Request) (uint, bool) {
 func GetUserRoleFromCtx(r *http.Request) string {
 	role, _ := r.Context().Value(ctxUserRole).(string)
 	return role
-}
-
-// GetRequestIDFromCtx — request_id, проставленный LoggingMiddleware (или "" если нет).
-func GetRequestIDFromCtx(r *http.Request) string {
-	id, _ := r.Context().Value(ctxRequestID).(string)
-	return id
 }

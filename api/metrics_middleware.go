@@ -11,6 +11,11 @@ import (
 // MetricsMiddleware записывает http_requests_total и http_request_duration_seconds.
 func MetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		start := time.Now()
 		mrw := &responseWriter{ResponseWriter: w, statusCode: 0}
 		next.ServeHTTP(mrw, r)

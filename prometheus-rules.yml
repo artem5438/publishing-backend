@@ -1,0 +1,8 @@
+groups:
+  - name: publishing-backend-observability
+    rules:
+      - record: http_requests_error_rate_5m
+        expr: |
+          sum(rate(http_requests_total{status=~"[45].."}[5m]))
+          /
+          clamp_min(sum(rate(http_requests_total[5m])), 1e-12)

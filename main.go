@@ -13,7 +13,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -218,13 +217,19 @@ func main() {
 		})
 	})
 
-	log.Println("Сервер запущен: http://localhost:8080")
-	log.Println("API:            http://localhost:8080/api")
-	log.Println("Swagger UI:     http://localhost:8080/swagger/")
-	log.Println("Minio консоль:  http://localhost:9001")
+	api.Logger.Info("service.startup",
+		"event", "service.startup",
+		"http_addr", ":8080",
+		"api_url", "http://localhost:8080/api",
+		"swagger_url", "http://localhost:8080/swagger/",
+		"minio_console_url", "http://localhost:9001",
+	)
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal("Ошибка сервера:", err)
+		api.Logger.Error("service.crash",
+			"event", "service.crash",
+			"error", err.Error(),
+		)
 	}
 }
 
@@ -263,7 +268,11 @@ func worksListHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("templates/works_list.html"))
 	if err := tmpl.Execute(w, data); err != nil {
-		log.Println("Ошибка шаблона:", err)
+		api.Logger.Error("template.render_failed",
+			"event", "template.render_failed",
+			"template", "templates/works_list.html",
+			"error", err.Error(),
+		)
 	}
 }
 
@@ -295,7 +304,11 @@ func workDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("templates/work_detail.html"))
 	if err := tmpl.Execute(w, data); err != nil {
-		log.Println("Ошибка шаблона:", err)
+		api.Logger.Error("template.render_failed",
+			"event", "template.render_failed",
+			"template", "templates/work_detail.html",
+			"error", err.Error(),
+		)
 	}
 }
 
@@ -334,7 +347,11 @@ func orderDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("templates/order_detail.html"))
 	if err := tmpl.Execute(w, data); err != nil {
-		log.Println("Ошибка шаблона:", err)
+		api.Logger.Error("template.render_failed",
+			"event", "template.render_failed",
+			"template", "templates/order_detail.html",
+			"error", err.Error(),
+		)
 	}
 }
 

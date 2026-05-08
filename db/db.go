@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -26,9 +26,10 @@ func Connect() {
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("❌ Ошибка подключения к БД:", err)
+		slog.Error("db.connect_failed", "event", "db.connect_failed", "error", err.Error())
+		os.Exit(1)
 	}
-	log.Println("✅ PostgreSQL подключён")
+	slog.Info("db.connected", "event", "db.connected")
 }
 
 func Migrate() {
@@ -39,9 +40,10 @@ func Migrate() {
 		&models.OrderWork{},
 	)
 	if err != nil {
-		log.Fatal("❌ Ошибка миграции:", err)
+		slog.Error("db.migrate_failed", "event", "db.migrate_failed", "error", err.Error())
+		os.Exit(1)
 	}
-	log.Println("✅ Таблицы созданы/обновлены")
+	slog.Info("db.migrated", "event", "db.migrated")
 }
 
 func getEnv(key, fallback string) string {

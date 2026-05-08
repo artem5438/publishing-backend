@@ -68,7 +68,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	Logger.Info(EventUserCreated,
-		"request_id", GetRequestIDFromCtx(r),
+		"event", EventUserCreated,
+		"outcome", "success",
 		"method", r.Method, "path", r.URL.Path,
 		"user_id", user.ID,
 		"login", user.Login,
@@ -110,8 +111,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	if db.DB.Where("login = ?", body.Login).First(&user).Error != nil {
-		Logger.Warn(EventAuthLoginFailed,
-			"request_id", GetRequestIDFromCtx(r),
+		Logger.Info(EventAuthLoginFailed,
+			"event", EventAuthLoginFailed,
+			"outcome", "failure",
 			"method", r.Method, "path", r.URL.Path,
 			"login", body.Login,
 			"reason", "user_not_found",
@@ -121,8 +123,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
-		Logger.Warn(EventAuthLoginFailed,
-			"request_id", GetRequestIDFromCtx(r),
+		Logger.Info(EventAuthLoginFailed,
+			"event", EventAuthLoginFailed,
+			"outcome", "failure",
 			"method", r.Method, "path", r.URL.Path,
 			"login", body.Login,
 			"user_id", user.ID,
@@ -165,7 +168,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	Logger.Info(EventAuthLoginSuccess, // успешный вход
-		"request_id", GetRequestIDFromCtx(r),
+		"event", EventAuthLoginSuccess,
+		"outcome", "success",
 		"method", r.Method, "path", r.URL.Path,
 		"user_id", user.ID,
 		"login", user.Login,

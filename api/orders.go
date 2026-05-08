@@ -143,11 +143,11 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	userID, authenticated := GetUserIDFromCtx(r)
 	role := GetUserRoleFromCtx(r)
 
-	Logger.Debug("GetOrders",
+	Logger.Debug("orders.list.inspect_access",
+		"event", "orders.list.inspect_access",
 		"authenticated", authenticated,
 		"user_id", userID,
 		"role", role,
-		"cookie", r.Header.Get("Cookie"),
 	)
 
 	if !authenticated {

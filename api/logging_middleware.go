@@ -1,11 +1,8 @@
 package api
 
 import (
-	"context"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type responseWriter struct {
@@ -27,18 +24,14 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqID := r.Header.Get("X-Request-ID")
-		if reqID == "" {
-			reqID = uuid.New().String()
+		if r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
 		}
-		ctx := context.WithValue(r.Context(), ctxRequestID, reqID)
-		w.Header().Set("X-Request-ID", reqID)
-
-		rWithCtx := r.WithContext(ctx)
 
 		start := time.Now()
 		lrw := &responseWriter{ResponseWriter: w, statusCode: 0}
-		next.ServeHTTP(lrw, rWithCtx)
+		next.ServeHTTP(lrw, r)
 
 		status := lrw.statusCode
 		if status == 0 {
@@ -46,28 +39,34 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		}
 		durationMs := time.Since(start).Milliseconds()
 
+		outcome := "success"
 		attrs := []any{
-			"request_id", reqID,
+			"event", "http.request",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", status,
 			"duration_ms", durationMs,
 			"client_ip", clientIP(r),
 		}
-		if userID, ok := GetUserIDFromCtx(rWithCtx); ok && userID != 0 {
+		if userID, ok := GetUserIDFromCtx(r); ok && userID != 0 {
 			attrs = append(attrs, "user_id", userID)
 		}
-		if role := GetUserRoleFromCtx(rWithCtx); role != "" {
+		if role := GetUserRoleFromCtx(r); role != "" {
 			attrs = append(attrs, "user_role", role)
 		}
 
 		switch {
 		case status >= 500:
-			Logger.Error("request", attrs...)
+			outcome = "error"
+			attrs = append(attrs, "outcome", outcome)
+			Logger.Error("http.request", attrs...)
 		case status >= 400:
-			Logger.Warn("request", attrs...)
+			outcome = "failure"
+			attrs = append(attrs, "outcome", outcome)
+			Logger.Warn("http.request", attrs...)
 		default:
-			Logger.Info("request", attrs...)
+			attrs = append(attrs, "outcome", outcome)
+			Logger.Debug("http.request", attrs...)
 		}
 	})
 }

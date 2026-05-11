@@ -197,6 +197,7 @@ func main() {
 			r.Get("/works", api.GetWorks)
 			r.Get("/works/{id}", api.GetWork)
 			r.Post("/works", api.CreateWork)
+			r.Put("/auth/profile", api.UpdateProfile)
 
 			r.Get("/publishing-orders", api.GetOrders)
 			r.Get("/publishing-orders/cart", api.GetCart)

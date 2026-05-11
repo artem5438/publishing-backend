@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"publishing-backend/db"
@@ -219,4 +220,70 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "выход выполнен"})
+}
+
+// UpdateProfile godoc
+// @Summary     Обновить профиль
+// @Description Изменяет имя и/или пароль текущего пользователя
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       body body object true "name, password"
+// @Success     200 {object} map[string]interface{}
+// @Failure     400 {object} map[string]string
+// @Failure     401 {object} map[string]string
+// @Security    CookieAuth
+// @Router      /auth/profile [put]
+func UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := GetUserIDFromCtx(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "требуется авторизация")
+		return
+	}
+
+	var body struct {
+		Name     string `json:"name"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "некорректный JSON")
+		return
+	}
+
+	name := strings.TrimSpace(body.Name)
+	password := strings.TrimSpace(body.Password)
+	if name == "" && password == "" {
+		writeError(w, http.StatusBadRequest, "передайте хотя бы одно поле: name или password")
+		return
+	}
+
+	var user models.User
+	if err := db.DB.First(&user, userID).Error; err != nil {
+		writeError(w, http.StatusUnauthorized, "пользователь не найден")
+		return
+	}
+
+	if name != "" {
+		user.Name = name
+	}
+	if password != "" {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "ошибка хэширования пароля")
+			return
+		}
+		user.Password = string(hashed)
+	}
+
+	if err := db.DB.Save(&user).Error; err != nil {
+		writeError(w, http.StatusInternalServerError, "не удалось обновить профиль")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":    user.ID,
+		"login": user.Login,
+		"name":  user.Name,
+		"role":  user.Role,
+	})
 }

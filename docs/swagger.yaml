@@ -198,6 +198,43 @@ paths:
       summary: Регистрация
       tags:
       - auth
+  /auth/profile:
+    put:
+      consumes:
+      - application/json
+      description: Изменяет имя и/или пароль текущего пользователя
+      parameters:
+      - description: name, password
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Обновить профиль
+      tags:
+      - auth
   /publishing-orders:
     get:
       description: Список без черновиков и удалённых. Создатель видит только свои

@@ -152,7 +152,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "ошибка создания токена")
 		return
 	}
-
+	// Устанавливаем куки сессии и токена
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    sessionID,

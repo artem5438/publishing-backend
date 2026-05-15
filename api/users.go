@@ -158,6 +158,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 	http.SetCookie(w, &http.Cookie{
@@ -165,6 +166,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Value:    tokenString,
 		Path:     "/",
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
@@ -184,8 +186,39 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		"user": map[string]any{
 			"id":    user.ID,
 			"login": user.Login,
+			"name":  user.Name,
 			"role":  user.Role,
 		},
+	})
+}
+
+// GetMe godoc
+// @Summary     Текущий пользователь
+// @Description Возвращает профиль по JWT из куки auth_token (для восстановления сессии на фронте)
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Failure     401 {object} map[string]string
+// @Security    CookieAuth
+// @Router      /auth/me [get]
+func GetMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := GetUserIDFromCtx(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "требуется авторизация")
+		return
+	}
+
+	var user models.User
+	if err := db.DB.First(&user, userID).Error; err != nil {
+		writeError(w, http.StatusUnauthorized, "пользователь не найден")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":    user.ID,
+		"login": user.Login,
+		"name":  user.Name,
+		"role":  user.Role,
 	})
 }
 

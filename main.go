@@ -150,6 +150,7 @@ func main() {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Expose-Headers", "X-Cache")
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
 				return
@@ -197,6 +198,7 @@ func main() {
 			r.Get("/works", api.GetWorks)
 			r.Get("/works/{id}", api.GetWork)
 			r.Post("/works", api.CreateWork)
+			r.Get("/auth/me", api.GetMe)
 			r.Put("/auth/profile", api.UpdateProfile)
 
 			r.Get("/publishing-orders", api.GetOrders)

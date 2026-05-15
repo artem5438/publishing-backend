@@ -25,6 +25,7 @@ const (
 	minioSecret   = "minioadmin123"
 	minioBaseURL  = "http://localhost:9000/publishing-media"
 	worksRedisKey = "api:works:all"
+	worksCacheTTL = 60 * time.Second
 )
 
 func newMinioClient() (*minio.Client, error) {
@@ -112,18 +113,26 @@ func GetWorks(w http.ResponseWriter, r *http.Request) { // Получаем ус
 
 	ctx := context.Background()
 
-	// Кешируем только если нет ни одного фильтра
+	// Кешируем только если нет ни одного фильтра (Cache-Aside).
 	hasFilters := query != "" || minPrice != "" || maxPrice != "" || workType != ""
 	if !hasFilters {
-		if cached, err := db.Redis.Get(ctx, worksRedisKey).Result(); err == nil {
+		if cached, ok := CacheGet(ctx, worksRedisKey); ok {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("X-Cache", "HIT")
 			w.WriteHeader(http.StatusOK)
 			if _, err := fmt.Fprint(w, cached); err != nil {
+				Logger.Error(EventCacheError,
+					"event", EventCacheError,
+					"cache_key", worksRedisKey,
+					"result", "error",
+					"error", err.Error(),
+				)
 				http.Error(w, "write error", http.StatusInternalServerError)
 			}
 			return
 		}
+	} else {
+		w.Header().Set("X-Cache", "BYPASS")
 	}
 
 	tx := db.DB.Where("status = ?", models.WorkStatusActive)
@@ -153,10 +162,9 @@ func GetWorks(w http.ResponseWriter, r *http.Request) { // Получаем ус
 		result = append(result, toWorkResponse(item))
 	}
 
-	// Кешируем только чистый список без фильтров
 	if !hasFilters {
 		if jsonBytes, err := json.Marshal(result); err == nil {
-			_ = db.Redis.Set(ctx, worksRedisKey, string(jsonBytes), 60*time.Second).Err()
+			CacheSet(ctx, worksRedisKey, string(jsonBytes), worksCacheTTL)
 		}
 		w.Header().Set("X-Cache", "MISS")
 	}
@@ -279,7 +287,7 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.Redis.Del(context.Background(), worksRedisKey) //nolint:errcheck
+	CacheInvalidate(context.Background(), worksRedisKey)
 
 	writeJSON(w, http.StatusCreated, toWorkResponse(work))
 }

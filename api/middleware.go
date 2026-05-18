@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
+	"publishing-backend/config"
 	"publishing-backend/db"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -38,11 +38,7 @@ const sessionCookieName = "session_id"
 const authTokenCookieName = "auth_token"
 
 func jwtSecret() []byte {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return []byte("dev-jwt-secret")
-	}
-	return []byte(secret)
+	return []byte(config.JWTSecret())
 }
 
 func parseJWTFromRequest(r *http.Request) (*jwt.Token, error) {

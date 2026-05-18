@@ -31,7 +31,7 @@ func logCache(event, key, result string, err error) {
 	Logger.Info(event, args...)
 }
 
-// CacheGet возвращает значение из Redis. При miss или ошибке — пустая строка и false.
+// CacheGet возвращает значение из Redis . При miss или ошибке — пустая строка и false.
 func CacheGet(ctx context.Context, key string) (string, bool) {
 	if db.Redis == nil {
 		logCache(EventCacheError, key, "error", redis.ErrClosed)

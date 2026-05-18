@@ -51,6 +51,14 @@ services:
       DB_PASSWORD: secret
       DB_NAME: lab2_db
       REDIS_ADDR: redis:6379
+      JWT_SECRET: dev-jwt-secret-change-me
+      CORS_ORIGIN: http://localhost
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: publishing-media
+      MINIO_PUBLIC_URL: http://localhost:9000/publishing-media
+      MINIO_USE_SSL: "false"
       LOG_LEVEL: info
     depends_on:
       - postgres
@@ -61,6 +69,9 @@ services:
     build:
       context: ../publishing-frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: /api
+        VITE_MEDIA_BASE_URL: http://localhost:9000/publishing-media
     container_name: publishing_frontend_lab2
     restart: unless-stopped
     ports:

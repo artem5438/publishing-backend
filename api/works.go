@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"publishing-backend/config"
 	"publishing-backend/db"
 	"publishing-backend/models"
 
@@ -19,19 +20,23 @@ import (
 )
 
 const (
-	minioBucket   = "publishing-media"
-	minioEndpoint = "localhost:9000"
-	minioAccess   = "minioadmin"
-	minioSecret   = "minioadmin123"
-	minioBaseURL  = "http://localhost:9000/publishing-media"
 	worksRedisKey = "api:works:all"
 	worksCacheTTL = 60 * time.Second
 )
 
+var (
+	minioBucket    = config.MinioBucket()
+	minioEndpoint  = config.MinioEndpoint()
+	minioAccessKey = config.MinioAccessKey()
+	minioSecretKey = config.MinioSecretKey()
+	minioPublicURL = config.MinioPublicURL()
+	minioUseSSL    = config.MinioUseSSL()
+)
+
 func newMinioClient() (*minio.Client, error) {
 	return minio.New(minioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(minioAccess, minioSecret, ""),
-		Secure: false,
+		Creds:  credentials.NewStaticV4(minioAccessKey, minioSecretKey, ""),
+		Secure: minioUseSSL,
 	})
 }
 
@@ -59,11 +64,11 @@ type WorkResponse struct {
 func toWorkResponse(m models.Work) WorkResponse {
 	imageURL := ""
 	if m.ImageKey != nil && *m.ImageKey != "" {
-		imageURL = minioBaseURL + "/" + *m.ImageKey
+		imageURL = minioPublicURL + "/" + *m.ImageKey
 	}
 	videoURL := ""
 	if m.VideoKey != nil && *m.VideoKey != "" {
-		videoURL = minioBaseURL + "/" + *m.VideoKey
+		videoURL = minioPublicURL + "/" + *m.VideoKey
 	}
 	tags := []string{}
 	if m.Tag1 != "" {
@@ -161,7 +166,7 @@ func GetWorks(w http.ResponseWriter, r *http.Request) { // Получаем ус
 	for _, item := range dbWorks {
 		result = append(result, toWorkResponse(item))
 	}
-
+	// Кешируем только если нет ни одного фильтра (Cache-Aside).
 	if !hasFilters {
 		if jsonBytes, err := json.Marshal(result); err == nil {
 			CacheSet(ctx, worksRedisKey, string(jsonBytes), worksCacheTTL)
@@ -281,12 +286,12 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
+	// Создаем услугу в базе данных
 	if err := db.DB.Create(&work).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка создания услуги")
 		return
 	}
-
+	// Удаляем кэш при создании услуги (Delete on write).
 	CacheInvalidate(context.Background(), worksRedisKey)
 
 	writeJSON(w, http.StatusCreated, toWorkResponse(work))

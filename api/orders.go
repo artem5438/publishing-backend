@@ -64,7 +64,7 @@ func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse 
 		for _, ow := range m.Works {
 			imageURL := ""
 			if ow.Work.ImageKey != nil && *ow.Work.ImageKey != "" {
-				imageURL = minioBaseURL + "/" + *ow.Work.ImageKey
+				imageURL = minioPublicURL + "/" + *ow.Work.ImageKey
 			}
 			resp.Works = append(resp.Works, OrderWorkResponse{
 				WorkID:   ow.WorkID,

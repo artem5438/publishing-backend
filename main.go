@@ -20,6 +20,7 @@ import (
 	_ "publishing-backend/docs"
 
 	"publishing-backend/api"
+	"publishing-backend/config"
 	"publishing-backend/db"
 	"publishing-backend/models"
 
@@ -117,8 +118,9 @@ func toViewOrder(m models.PublishingOrder) PublishingOrder {
 
 //  Константы (SSR)
 
-const minioURL = "http://localhost:9000/publishing-media"
 const creatorID = 1
+
+var minioURL = config.MinioPublicURL()
 
 func getCartInfo() (cartCount int, orderID int) {
 	var currentOrder models.PublishingOrder
@@ -136,6 +138,8 @@ func getCartInfo() (cartCount int, orderID int) {
 
 func main() {
 	api.InitLogger()
+	httpAddr := config.HTTPAddr()
+	corsOrigin := config.CORSOrigin()
 
 	db.Connect()
 	db.Migrate()
@@ -143,10 +147,10 @@ func main() {
 
 	r := chi.NewRouter()
 
-	//  CORS (для фронтенда на localhost:5173)
+	//  CORS для фронтенда
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+			w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -222,13 +226,13 @@ func main() {
 
 	api.Logger.Info("service.startup",
 		"event", "service.startup",
-		"http_addr", ":8080",
+		"http_addr", httpAddr,
 		"api_url", "http://localhost:8080/api",
 		"swagger_url", "http://localhost:8080/swagger/",
 		"minio_console_url", "http://localhost:9001",
 	)
 
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	if err := http.ListenAndServe(httpAddr, r); err != nil {
 		api.Logger.Error("service.crash",
 			"event", "service.crash",
 			"error", err.Error(),

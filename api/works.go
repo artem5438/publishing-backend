@@ -45,6 +45,126 @@ func generateFileName(original string) string {
 	return fmt.Sprintf("file-%d%s", time.Now().UnixNano(), ext)
 }
 
+func uploadWorkFile(r *http.Request, mc *minio.Client, fieldName string) *string {
+	if mc == nil {
+		return nil
+	}
+	file, header, err := r.FormFile(fieldName)
+	if err != nil {
+		return nil
+	}
+	defer file.Close() //nolint:errcheck
+
+	key := generateFileName(header.Filename)
+	if _, uploadErr := mc.PutObject(
+		context.Background(), minioBucket, key,
+		file, header.Size,
+		minio.PutObjectOptions{ContentType: header.Header.Get("Content-Type")},
+	); uploadErr != nil {
+		return nil
+	}
+	return &key
+}
+
+func formHasField(r *http.Request, key string) bool {
+	if r.MultipartForm == nil {
+		return false
+	}
+	_, ok := r.MultipartForm.Value[key]
+	return ok
+}
+
+func applyWorkTextFields(r *http.Request, work *models.Work, partial bool) error {
+	if !partial {
+		work.Description = r.FormValue("description")
+		work.WorkType = r.FormValue("work_type")
+		work.Unit = r.FormValue("unit")
+		work.ParamDeadline = r.FormValue("param_deadline")
+		work.ParamQuantity = r.FormValue("param_quantity")
+		work.ParamUnit = r.FormValue("param_unit")
+		work.ParamFormat = r.FormValue("param_format")
+		work.Tag1 = r.FormValue("tag1")
+		work.Tag2 = r.FormValue("tag2")
+		work.Tag3 = r.FormValue("tag3")
+		return nil
+	}
+
+	if formHasField(r, "name") {
+		name := strings.TrimSpace(r.FormValue("name"))
+		if name == "" {
+			return fmt.Errorf("поле name не может быть пустым")
+		}
+		work.Name = name
+	}
+	if v := strings.TrimSpace(r.FormValue("price_rub")); v != "" {
+		var priceRub int
+		if _, err := fmt.Sscan(v, &priceRub); err != nil {
+			return fmt.Errorf("price_rub должен быть числом")
+		}
+		work.PriceRub = priceRub
+	}
+	if v := strings.TrimSpace(r.FormValue("description")); v != "" {
+		work.Description = v
+	}
+	if v := strings.TrimSpace(r.FormValue("work_type")); v != "" {
+		work.WorkType = v
+	}
+	if v := strings.TrimSpace(r.FormValue("unit")); v != "" {
+		work.Unit = v
+	}
+	if v := strings.TrimSpace(r.FormValue("param_deadline")); v != "" {
+		work.ParamDeadline = v
+	}
+	if v := strings.TrimSpace(r.FormValue("param_quantity")); v != "" {
+		work.ParamQuantity = v
+	}
+	if v := strings.TrimSpace(r.FormValue("param_unit")); v != "" {
+		work.ParamUnit = v
+	}
+	if v := strings.TrimSpace(r.FormValue("param_format")); v != "" {
+		work.ParamFormat = v
+	}
+	if v := strings.TrimSpace(r.FormValue("tag1")); v != "" {
+		work.Tag1 = v
+	}
+	if v := strings.TrimSpace(r.FormValue("tag2")); v != "" {
+		work.Tag2 = v
+	}
+	if v := strings.TrimSpace(r.FormValue("tag3")); v != "" {
+		work.Tag3 = v
+	}
+	return nil
+}
+
+func formTruthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func attachWorkMedia(r *http.Request, work *models.Work, mc *minio.Client) {
+	if key := uploadWorkFile(r, mc, "image"); key != nil {
+		work.ImageKey = key
+	}
+	if key := uploadWorkFile(r, mc, "video"); key != nil {
+		work.VideoKey = key
+	}
+}
+
+// applyWorkMediaOnUpdate обрабатывает remove_image/remove_video и опциональную замену файлов.
+func applyWorkMediaOnUpdate(r *http.Request, work *models.Work, mc *minio.Client) {
+	if formHasField(r, "remove_image") && formTruthy(r.FormValue("remove_image")) {
+		work.ImageKey = nil
+	}
+	if formHasField(r, "remove_video") && formTruthy(r.FormValue("remove_video")) {
+		work.VideoKey = nil
+	}
+	attachWorkMedia(r, work, mc)
+}
+
 type WorkResponse struct {
 	ID            uint     `json:"id"`
 	Name          string   `json:"name"`
@@ -257,35 +377,9 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 		Status:        models.WorkStatusActive,
 	}
 
-	mc, minioErr := newMinioClient()
+	mc, _ := newMinioClient()
+	attachWorkMedia(r, &work, mc)
 
-	if imageFile, imageHeader, err := r.FormFile("image"); err == nil {
-		defer imageFile.Close() //nolint:errcheck
-		if minioErr == nil {
-			key := generateFileName(imageHeader.Filename)
-			if _, uploadErr := mc.PutObject(
-				context.Background(), minioBucket, key,
-				imageFile, imageHeader.Size,
-				minio.PutObjectOptions{ContentType: imageHeader.Header.Get("Content-Type")},
-			); uploadErr == nil {
-				work.ImageKey = &key
-			}
-		}
-	}
-
-	if videoFile, videoHeader, err := r.FormFile("video"); err == nil {
-		defer videoFile.Close() //nolint:errcheck
-		if minioErr == nil {
-			key := generateFileName(videoHeader.Filename)
-			if _, uploadErr := mc.PutObject(
-				context.Background(), minioBucket, key,
-				videoFile, videoHeader.Size,
-				minio.PutObjectOptions{ContentType: videoHeader.Header.Get("Content-Type")},
-			); uploadErr == nil {
-				work.VideoKey = &key
-			}
-		}
-	}
 	// Создаем услугу в базе данных
 	if err := db.DB.Create(&work).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка создания услуги")
@@ -295,4 +389,91 @@ func CreateWork(w http.ResponseWriter, r *http.Request) {
 	CacheInvalidate(context.Background(), worksRedisKey)
 
 	writeJSON(w, http.StatusCreated, toWorkResponse(work))
+}
+
+// UpdateWork godoc
+// @Summary     Редактировать услугу
+// @Description Обновляет активную услугу. multipart/form-data, как CreateWork; пустые текстовые поля не меняют значение.
+// @Tags        works
+// @Accept      mpfd
+// @Produce     json
+// @Param       id            path int    true  "ID услуги"
+// @Param       name          formData string false "Название"
+// @Param       price_rub     formData int    false "Цена в рублях"
+// @Param       description   formData string false "Описание"
+// @Param       work_type     formData string false "Тип работы"
+// @Param       unit          formData string false "Единица"
+// @Param       param_deadline formData string false "Срок"
+// @Param       param_quantity formData string false "Количество"
+// @Param       param_unit    formData string false "Единица параметра"
+// @Param       param_format  formData string false "Формат"
+// @Param       tag1          formData string false "Тег 1"
+// @Param       tag2          formData string false "Тег 2"
+// @Param       tag3          formData string false "Тег 3"
+// @Param       image         formData file   false "Изображение"
+// @Param       video         formData file   false "Видео"
+// @Param       remove_image  formData string false "true — убрать фото"
+// @Param       remove_video  formData string false "true — убрать видео"
+// @Success     200 {object} WorkResponse
+// @Failure     400 {object} map[string]string
+// @Failure     404 {object} map[string]string
+// @Security    CookieAuth
+// @Router      /works/{id} [put]
+func UpdateWork(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "ошибка разбора формы")
+		return
+	}
+
+	var work models.Work
+	if db.DB.Where("id = ? AND status = ?", id, models.WorkStatusActive).First(&work).Error != nil {
+		writeError(w, http.StatusNotFound, "услуга не найдена")
+		return
+	}
+
+	if err := applyWorkTextFields(r, &work, true); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	mc, _ := newMinioClient()
+	applyWorkMediaOnUpdate(r, &work, mc)
+
+	if err := db.DB.Save(&work).Error; err != nil {
+		writeError(w, http.StatusInternalServerError, "ошибка обновления услуги")
+		return
+	}
+
+	CacheInvalidate(context.Background(), worksRedisKey)
+	writeJSON(w, http.StatusOK, toWorkResponse(work))
+}
+
+// DeleteWork godoc
+// @Summary     Удалить услугу
+// @Description Мягкое удаление: status = deleted
+// @Tags        works
+// @Produce     json
+// @Param       id path int true "ID услуги"
+// @Success     200 {object} map[string]string
+// @Failure     404 {object} map[string]string
+// @Security    CookieAuth
+// @Router      /works/{id} [delete]
+func DeleteWork(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var work models.Work
+	if db.DB.Where("id = ? AND status = ?", id, models.WorkStatusActive).First(&work).Error != nil {
+		writeError(w, http.StatusNotFound, "услуга не найдена")
+		return
+	}
+
+	if err := db.DB.Model(&work).Update("status", models.WorkStatusDeleted).Error; err != nil {
+		writeError(w, http.StatusInternalServerError, "ошибка удаления услуги")
+		return
+	}
+
+	CacheInvalidate(context.Background(), worksRedisKey)
+	writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
 }

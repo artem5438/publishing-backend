@@ -202,6 +202,8 @@ func main() {
 			r.Get("/works", api.GetWorks)
 			r.Get("/works/{id}", api.GetWork)
 			r.Post("/works", api.CreateWork)
+			r.Put("/works/{id}", api.UpdateWork)
+			r.Delete("/works/{id}", api.DeleteWork)
 			r.Get("/auth/me", api.GetMe)
 			r.Put("/auth/profile", api.UpdateProfile)
 

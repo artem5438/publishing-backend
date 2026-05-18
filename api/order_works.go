@@ -150,8 +150,8 @@ func UpdateOrderWork(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"order_id": orderID,
 		"work_id":  workID,
-		"quantity": ow.Quantity,
-		"comment":  ow.Comment,
+		"quantity": body.Quantity,
+		"comment":  body.Comment,
 	})
 }
 

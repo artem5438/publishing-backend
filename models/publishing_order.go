@@ -29,9 +29,10 @@ type PublishingOrder struct {
 	Moderator *User `gorm:"foreignKey:ModeratorID;constraint:OnDelete:RESTRICT"`
 
 	// Тематические поля издательства
-	BookTitle   string `gorm:"size:300"`  // название книги
-	Circulation int    `gorm:"default:0"` // тираж (экземпляры)
-	TotalPrice  *int   // рассчитывается при формировании заявки
+	BookTitle       string `gorm:"size:300"`  // название книги
+	Circulation     int    `gorm:"default:0"` // тираж (экземпляры)
+	TotalPrice      *int   // рассчитывается при формировании заявки
+	RejectionReason string `gorm:"size:500"` // причина отклонения модератором
 
 	// Связь с услугами
 	Works []OrderWork `gorm:"foreignKey:OrderID"`

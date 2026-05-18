@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"publishing-backend/db"
@@ -23,17 +25,18 @@ type OrderWorkResponse struct {
 }
 
 type OrderResponse struct {
-	ID             uint                `json:"id"`
-	Status         models.OrderStatus  `json:"status"`
-	CreatorLogin   string              `json:"creator_login"`
-	ModeratorLogin string              `json:"moderator_login,omitempty"`
-	BookTitle      string              `json:"book_title"`
-	Circulation    int                 `json:"circulation"`
-	TotalPrice     *int                `json:"total_price,omitempty"`
-	CreatedAt      time.Time           `json:"created_at"`
-	FormedAt       *time.Time          `json:"formed_at,omitempty"`
-	CompletedAt    *time.Time          `json:"completed_at,omitempty"`
-	Works          []OrderWorkResponse `json:"works,omitempty"`
+	ID              uint                `json:"id"`
+	Status          models.OrderStatus  `json:"status"`
+	CreatorLogin    string              `json:"creator_login"`
+	ModeratorLogin  string              `json:"moderator_login,omitempty"`
+	BookTitle       string              `json:"book_title"`
+	Circulation     int                 `json:"circulation"`
+	TotalPrice      *int                `json:"total_price,omitempty"`
+	CreatedAt       time.Time           `json:"created_at"`
+	FormedAt        *time.Time          `json:"formed_at,omitempty"`
+	CompletedAt     *time.Time          `json:"completed_at,omitempty"`
+	RejectionReason string              `json:"rejection_reason,omitempty"`
+	Works           []OrderWorkResponse `json:"works,omitempty"`
 	// Вычисляемое поле: кол-во позиций м-м с непустым комментарием
 	FilledWorksCount int    `json:"filled_works_count"`
 	UserRole         string `json:"user_role,omitempty"`
@@ -41,14 +44,15 @@ type OrderResponse struct {
 
 func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse {
 	resp := OrderResponse{
-		ID:          m.ID,
-		Status:      m.Status,
-		BookTitle:   m.BookTitle,
-		Circulation: m.Circulation,
-		TotalPrice:  m.TotalPrice,
-		CreatedAt:   m.CreatedAt,
-		FormedAt:    m.FormedAt,
-		CompletedAt: m.CompletedAt,
+		ID:              m.ID,
+		Status:          m.Status,
+		BookTitle:       m.BookTitle,
+		Circulation:     m.Circulation,
+		TotalPrice:      m.TotalPrice,
+		CreatedAt:       m.CreatedAt,
+		FormedAt:        m.FormedAt,
+		CompletedAt:     m.CompletedAt,
+		RejectionReason: m.RejectionReason,
 	}
 
 	// Логины вместо ID
@@ -60,8 +64,10 @@ func toOrderResponse(m models.PublishingOrder, includeWorks bool) OrderResponse 
 	// Вычисляемое поле: кол-во позиций с непустым комментарием
 	filled := 0
 	if includeWorks {
-		resp.Works = make([]OrderWorkResponse, 0, len(m.Works))
-		for _, ow := range m.Works {
+		works := append([]models.OrderWork(nil), m.Works...)
+		sort.Slice(works, func(i, j int) bool { return works[i].WorkID < works[j].WorkID })
+		resp.Works = make([]OrderWorkResponse, 0, len(works))
+		for _, ow := range works {
 			imageURL := ""
 			if ow.Work.ImageKey != nil && *ow.Work.ImageKey != "" {
 				imageURL = minioPublicURL + "/" + *ow.Work.ImageKey
@@ -354,7 +360,7 @@ func SubmitOrder(w http.ResponseWriter, r *http.Request) {
 // @Accept      json
 // @Produce     json
 // @Param       id   path int    true "ID заявки"
-// @Param       body body object true "action: complete или reject"
+// @Param       body body object true "action: complete или reject; rejection_reason обязателен при reject"
 // @Success     200  {object} OrderResponse
 // @Failure     400  {object} map[string]string
 // @Security CookieAuth
@@ -371,7 +377,8 @@ func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Action string `json:"action"` // "complete" или "reject"
+		Action          string `json:"action"` // "complete" или "reject"
+		RejectionReason string `json:"rejection_reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "некорректный JSON")
@@ -384,17 +391,25 @@ func ModerateOrder(w http.ResponseWriter, r *http.Request) {
 		newStatus = models.StatusCompleted
 	case "reject":
 		newStatus = models.StatusRejected
+		if strings.TrimSpace(body.RejectionReason) == "" {
+			writeError(w, http.StatusBadRequest, "укажите причину отклонения")
+			return
+		}
 	default:
 		writeError(w, http.StatusBadRequest, "action должен быть 'complete' или 'reject'")
 		return
 	}
 
 	now := time.Now()
-	if err := db.DB.Model(&order).Updates(map[string]any{
+	updates := map[string]any{
 		"status":       newStatus,
 		"moderator_id": moderatorID,
 		"completed_at": now,
-	}).Error; err != nil {
+	}
+	if newStatus == models.StatusRejected {
+		updates["rejection_reason"] = strings.TrimSpace(body.RejectionReason)
+	}
+	if err := db.DB.Model(&order).Updates(updates).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка модерации")
 		return
 	}

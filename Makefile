@@ -1,0 +1,16 @@
+.PHONY: test-unit test-integration test-all test-smoke test-regression
+
+test-unit:
+	go test -v -tags=unit ./api/...
+
+test-integration:
+	go test -v -tags=integration -timeout=120s ./api/...
+
+test-all:
+	go test -v -tags=unit ./api/... && go test -v -tags=integration -timeout=120s ./api/...
+
+test-smoke:
+	go test -v -tags=integration -run 'TestRegister_Success|TestLogin_Success|TestGetMe_Authenticated' -timeout=60s ./api/...
+
+test-regression:
+	go test -v -tags=integration -timeout=120s ./api/...

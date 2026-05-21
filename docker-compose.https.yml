@@ -1,0 +1,8 @@
+services:
+  frontend:
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ../publishing-frontend/nginx.https.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../publishing-frontend/certs:/etc/nginx/certs:ro

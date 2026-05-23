@@ -43,6 +43,7 @@ func TestFormTruthy(t *testing.T) {
 	}
 }
 
+// helper: создаём multipart-запрос с текстовыми полями формы
 func newMultipartRequest(t *testing.T, fields map[string]string) *http.Request {
 	t.Helper()
 	body := &bytes.Buffer{}
@@ -58,7 +59,7 @@ func newMultipartRequest(t *testing.T, fields map[string]string) *http.Request {
 	return req
 }
 
-// создаем запрос
+// helper: создаём обычный HTTP-запрос для теста
 func httptestNewRequest(t *testing.T, method, url string, body *bytes.Buffer) *http.Request {
 	t.Helper()
 	req, err := http.NewRequest(method, url, body)

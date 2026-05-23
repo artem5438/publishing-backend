@@ -23,7 +23,7 @@ repos:
     hooks:
       - id: golangci-lint
         name: golangci-lint
-        entry: golangci-lint run --build-tags=unit,integration --fix ./...
+        entry: golangci-lint run --build-tags=unit,integration,smoke,regression --fix ./...
         language: system
         types: [go]
         pass_filenames: false

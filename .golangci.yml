@@ -4,6 +4,8 @@ run:
   build-tags:
     - unit
     - integration
+    - smoke
+    - regression
 
 linters:
   enable:

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// тестируем правила видимости заявки для разных ролей и статусов
 func TestOrderVisibleToUser(t *testing.T) {
 	t.Parallel()
 

@@ -1,4 +1,4 @@
-//go:build unit || integration
+//go:build unit || integration || smoke || regression
 
 package api
 
@@ -35,6 +35,7 @@ var (
 	integrationStop    func()
 )
 
+// общая точка входа: настраиваем окружение тестов и корректное завершение контейнеров
 func TestMain(m *testing.M) {
 	InitLogger()
 	_ = os.Setenv("JWT_SECRET", "test-jwt-secret")
@@ -246,6 +247,7 @@ func makeRequest(t *testing.T, server *httptest.Server, method, path string, bod
 	}
 }
 
+// helper: сериализуем структуру в JSON и падаем на ошибке в тесте
 func mustMarshal(t *testing.T, v any) []byte {
 	t.Helper()
 	data, err := json.Marshal(v)
@@ -253,11 +255,13 @@ func mustMarshal(t *testing.T, v any) []byte {
 	return data
 }
 
+// helper: безопасно парсим JSON-ответ в целевую структуру
 func parseJSONBody(t *testing.T, data []byte, dest any) {
 	t.Helper()
 	require.NoError(t, json.Unmarshal(data, dest))
 }
 
+// helper: объединяем cookies, чтобы имитировать поведение браузера
 func mergeCookies(existing []*http.Cookie, newOnes []*http.Cookie) []*http.Cookie {
 	byName := make(map[string]*http.Cookie)
 	for _, c := range existing {
@@ -273,6 +277,7 @@ func mergeCookies(existing []*http.Cookie, newOnes []*http.Cookie) []*http.Cooki
 	return out
 }
 
+// helper: генерируем уникальный логин для изоляции тестов
 func uniqueLogin(prefix string) string {
 	return prefix + "_" + time.Now().Format("150405.000000")
 }

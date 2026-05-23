@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// тестируем парсинг булевых значений из HTML-форм
 func TestFormTruthy(t *testing.T) {
 	t.Parallel()
 
@@ -57,6 +58,7 @@ func newMultipartRequest(t *testing.T, fields map[string]string) *http.Request {
 	return req
 }
 
+// создаем запрос
 func httptestNewRequest(t *testing.T, method, url string, body *bytes.Buffer) *http.Request {
 	t.Helper()
 	req, err := http.NewRequest(method, url, body)
@@ -64,6 +66,7 @@ func httptestNewRequest(t *testing.T, method, url string, body *bytes.Buffer) *h
 	return req
 }
 
+// тестируем полное заполнение работы текстовыми полями
 func TestApplyWorkTextFields_Full(t *testing.T) {
 	t.Parallel()
 
@@ -83,6 +86,7 @@ func TestApplyWorkTextFields_Full(t *testing.T) {
 	assert.Equal(t, 50, work.PriceRub)
 }
 
+// тестируем частичное заполнение работы текстовыми полями с пустым name
 func TestApplyWorkTextFields_EmptyName_Partial(t *testing.T) {
 	t.Parallel()
 
@@ -94,10 +98,10 @@ func TestApplyWorkTextFields_EmptyName_Partial(t *testing.T) {
 	assert.Equal(t, "было", work.Name)
 }
 
+// тестируем частичное заполнение работы текстовыми полями с пустым price_rub
 func TestApplyWorkTextFields_EmptyPrice_Partial(t *testing.T) {
 	t.Parallel()
 
-	// Пустое price_rub не перезаписывает цену (в отличие от "0", которое парсится как 0).
 	req := newMultipartRequest(t, map[string]string{"price_rub": ""})
 	work := &models.Work{PriceRub: 100}
 
@@ -106,6 +110,7 @@ func TestApplyWorkTextFields_EmptyPrice_Partial(t *testing.T) {
 	assert.Equal(t, 100, work.PriceRub)
 }
 
+// тестируем частичное заполнение работы текстовыми полями
 func TestApplyWorkTextFields_Partial(t *testing.T) {
 	t.Parallel()
 

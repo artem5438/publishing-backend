@@ -45,6 +45,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// поднимаем 2 контейнера и получаем строки подключения
 func startIntegrationEnv() error {
 	ctx := context.Background()
 
@@ -104,6 +105,7 @@ func startIntegrationEnv() error {
 	return nil
 }
 
+// открываем соединение с базой данных с помощью GORM
 func openGormWithRetry(connStr string, attempts int, delay time.Duration) (*gorm.DB, error) {
 	var lastErr error
 	for i := 0; i < attempts; i++ {
@@ -125,6 +127,7 @@ func openGormWithRetry(connStr string, attempts int, delay time.Duration) (*gorm
 	return nil, lastErr
 }
 
+// очищаем таблицы
 func resetIntegrationTables(t *testing.T) {
 	t.Helper()
 	require.NoError(t, integrationGormDB.Exec(
@@ -132,6 +135,7 @@ func resetIntegrationTables(t *testing.T) {
 	).Error)
 }
 
+// настраиваем тестовое окружение
 func setupTestEnv(t *testing.T) *gorm.DB {
 	t.Helper()
 
@@ -155,6 +159,7 @@ func setupTestEnv(t *testing.T) *gorm.DB {
 	return integrationGormDB
 }
 
+// монтируем маршруты API
 func mountAPIRoutes(r chi.Router) {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(AuthMiddleware)
@@ -193,6 +198,7 @@ func mountAPIRoutes(r chi.Router) {
 	})
 }
 
+// создаем тестовый сервер
 func newTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	r := chi.NewRouter()
@@ -201,12 +207,14 @@ func newTestServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(r)
 }
 
+// структура для хранения ответа от сервера
 type httpResponse struct {
 	Status  int
 	Body    []byte
 	Cookies []*http.Cookie
 }
 
+// делаем запрос к серверу
 func makeRequest(t *testing.T, server *httptest.Server, method, path string, body []byte, cookies []*http.Cookie) httpResponse {
 	t.Helper()
 

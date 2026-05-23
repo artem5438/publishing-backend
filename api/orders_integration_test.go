@@ -47,6 +47,7 @@ func createWorkInDB(t *testing.T, name string, priceRub int) models.Work {
 	return work
 }
 
+// тестируем полный бизнес-сценарий оформления заказа
 func TestSubmitOrder_HappyPath(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -90,6 +91,7 @@ func TestSubmitOrder_HappyPath(t *testing.T) {
 	assert.Equal(t, expectedTotal, order["total_price"])
 }
 
+// тестируем оформление заказа с пустым названием книги
 func TestSubmitOrder_EmptyBookTitle(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -115,6 +117,7 @@ func TestSubmitOrder_EmptyBookTitle(t *testing.T) {
 	_ = userID
 }
 
+// тестируем оформление заказа без услуг
 func TestSubmitOrder_NoWorks(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)

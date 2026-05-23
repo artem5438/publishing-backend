@@ -45,6 +45,7 @@ func TestOrderVisibleToUser(t *testing.T) {
 	}
 }
 
+// тестируем сортировку работ в заказе
 func TestToOrderResponse_WorksSorted(t *testing.T) {
 	t.Parallel()
 
@@ -68,6 +69,7 @@ func TestToOrderResponse_WorksSorted(t *testing.T) {
 	assert.Equal(t, uint(3), resp.Works[2].WorkID)
 }
 
+// тестируем количество заполненных работ в заказе
 func TestToOrderResponse_FilledWorksCount(t *testing.T) {
 	t.Parallel()
 
@@ -83,6 +85,7 @@ func TestToOrderResponse_FilledWorksCount(t *testing.T) {
 	assert.Equal(t, 1, resp.FilledWorksCount)
 }
 
+// тестируем копирование общей стоимости заказа
 func TestToOrderResponse_CopiesTotalPrice(t *testing.T) {
 	t.Parallel()
 

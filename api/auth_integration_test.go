@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// регестрируем нового пользователя
 func TestRegister_Success(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -32,6 +33,7 @@ func TestRegister_Success(t *testing.T) {
 	assert.Equal(t, "creator", data["role"])
 }
 
+// тестируем регистрацию пользователя с дубликатным логином
 func TestRegister_DuplicateLogin(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -51,6 +53,7 @@ func TestRegister_DuplicateLogin(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, resp2.Status)
 }
 
+// тестируем регистрацию пользователя без пароля
 func TestRegister_MissingFields(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -65,6 +68,7 @@ func TestRegister_MissingFields(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Status)
 }
 
+// тестируем вход в систему
 func TestLogin_Success(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -95,6 +99,7 @@ func TestLogin_Success(t *testing.T) {
 	assert.NotEmpty(t, authCookie.Value)
 }
 
+// тестируем вход в систему с неверным паролем
 func TestLogin_WrongPassword(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -111,6 +116,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.Status)
 }
 
+// тестируем послдовательность регистрации и входа в систему
 func TestGetMe_Authenticated(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)
@@ -133,6 +139,7 @@ func TestGetMe_Authenticated(t *testing.T) {
 	assert.Equal(t, login, data["login"])
 }
 
+// тестируем получение профиля пользователя без авторизации
 func TestGetMe_Unauthenticated(t *testing.T) {
 	setupTestEnv(t)
 	server := newTestServer(t)

@@ -136,6 +136,7 @@ func applyWorkTextFields(r *http.Request, work *models.Work, partial bool) error
 	return nil
 }
 
+// парсинг булевых значений из HTML-форм
 func formTruthy(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "1", "true", "yes", "on":

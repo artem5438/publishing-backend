@@ -102,6 +102,21 @@ func isPublicServicesGet(r *http.Request) bool {
 	return path == "/api/services" || strings.HasPrefix(path, "/api/services/")
 }
 
+func isPublicWorksGet(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	path := r.URL.Path
+	if path == "/api/works" {
+		return true
+	}
+	if strings.HasPrefix(path, "/api/works/") {
+		rest := strings.TrimPrefix(path, "/api/works/")
+		return rest != "" && !strings.Contains(rest, "/")
+	}
+	return false
+}
+
 func isPublicAuthEndpoint(r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		return false
@@ -159,7 +174,21 @@ func DeleteSession(sessionID string) error {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isPublicServicesGet(r) || isPublicAuthEndpoint(r) {
+		if isPublicServicesGet(r) || isPublicAuthEndpoint(r) || isPublicWorksGet(r) {
+			token, err := parseJWTFromRequest(r)
+			if err == nil && token.Valid {
+				if claims, ok := token.Claims.(jwt.MapClaims); ok {
+					if userIDFloat, okID := claims["user_id"].(float64); okID && userIDFloat > 0 {
+						role, _ := claims["user_role"].(string)
+						login, _ := claims["user_login"].(string)
+						ctx := context.WithValue(r.Context(), ctxUserID, uint(userIDFloat))
+						ctx = context.WithValue(ctx, ctxUserRole, role)
+						ctx = context.WithValue(ctx, ctxUserLogin, login)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+				}
+			}
 			next.ServeHTTP(w, r)
 			return
 		}

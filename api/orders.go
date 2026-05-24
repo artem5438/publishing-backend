@@ -192,7 +192,7 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var orders []models.PublishingOrder
-	q.Find(&orders)
+	q.Order("formed_at DESC NULLS LAST, created_at DESC").Find(&orders)
 
 	result := make([]OrderResponse, 0, len(orders))
 	for _, o := range orders {
@@ -451,6 +451,71 @@ func DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "заявка удалена"})
+}
+
+// CopyRejectedOrder создаёт новый черновик на основе отклонённой заявки создателя.
+func CopyRejectedOrder(w http.ResponseWriter, r *http.Request) {
+	creatorID := getCreatorID(r)
+	id := chi.URLParam(r, "id")
+
+	var source models.PublishingOrder
+	if db.DB.
+		Preload("Works").
+		Where("id = ? AND creator_id = ? AND status = ?", id, creatorID, models.StatusRejected).
+		First(&source).Error != nil {
+		writeError(w, http.StatusNotFound, "отклонённая заявка не найдена")
+		return
+	}
+
+	var draft models.PublishingOrder
+	res := db.DB.Where("creator_id = ? AND status = ?", creatorID, models.StatusDraft).First(&draft)
+	if res.Error != nil {
+		draft = models.PublishingOrder{
+			Status:      models.StatusDraft,
+			CreatorID:   creatorID,
+			BookTitle:   source.BookTitle,
+			Circulation: source.Circulation,
+		}
+		if err := db.DB.Create(&draft).Error; err != nil {
+			writeError(w, http.StatusInternalServerError, "ошибка создания черновика")
+			return
+		}
+	} else {
+		if err := db.DB.Where("order_id = ?", draft.ID).Delete(&models.OrderWork{}).Error; err != nil {
+			writeError(w, http.StatusInternalServerError, "ошибка очистки черновика")
+			return
+		}
+		if err := db.DB.Model(&draft).Updates(map[string]any{
+			"book_title":  source.BookTitle,
+			"circulation": source.Circulation,
+		}).Error; err != nil {
+			writeError(w, http.StatusInternalServerError, "ошибка обновления черновика")
+			return
+		}
+	}
+
+	for _, ow := range source.Works {
+		var work models.Work
+		if db.DB.Where("id = ? AND status = ?", ow.WorkID, models.WorkStatusActive).First(&work).Error != nil {
+			continue
+		}
+		row := models.OrderWork{
+			OrderID:  draft.ID,
+			WorkID:   ow.WorkID,
+			Quantity: ow.Quantity,
+			Comment:  ow.Comment,
+		}
+		if row.Quantity < 1 {
+			row.Quantity = 1
+		}
+		if err := db.DB.Create(&row).Error; err != nil {
+			writeError(w, http.StatusInternalServerError, "ошибка копирования услуг")
+			return
+		}
+	}
+
+	db.DB.Preload("Creator").Preload("Moderator").Preload("Works.Work").First(&draft)
+	writeJSON(w, http.StatusCreated, toOrderResponse(draft, true))
 }
 
 // OrderVisibleToUser — правила чтения заявки (согласованы со списком GetOrders).

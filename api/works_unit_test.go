@@ -33,7 +33,7 @@ func TestFormTruthy(t *testing.T) {
 		{"no", false},
 		{"random", false},
 	}
-
+	// тестируем парсинг булевых значений из HTML-форм
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.in, func(t *testing.T) {

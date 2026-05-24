@@ -52,16 +52,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role := models.RoleCreator
-	if body.Role == string(models.RoleModerator) {
-		role = models.RoleModerator
-	}
-
 	user := models.User{
 		Login:    body.Login,
 		Password: string(hashed),
 		Name:     body.Name,
-		Role:     role,
+		Role:     models.RoleCreator,
 	}
 	if err := db.DB.Create(&user).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "ошибка создания пользователя")

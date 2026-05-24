@@ -66,6 +66,18 @@ type PublishingOrder struct {
 	Circulation int
 }
 
+func resolveAllowedOrigin(requestOrigin string, allowedOrigins []string) string {
+	if requestOrigin == "" {
+		return allowedOrigins[0]
+	}
+	for _, allowed := range allowedOrigins {
+		if strings.EqualFold(allowed, requestOrigin) {
+			return requestOrigin
+		}
+	}
+	return allowedOrigins[0]
+}
+
 //  Вспомогательные функции (SSR) ─
 
 func strVal(s *string) string {
@@ -139,7 +151,7 @@ func getCartInfo() (cartCount int, orderID int) {
 func main() {
 	api.InitLogger()
 	httpAddr := config.HTTPAddr()
-	corsOrigin := config.CORSOrigin()
+	corsOrigins := config.CORSOrigins()
 
 	db.Connect()
 	db.Migrate()
@@ -150,7 +162,8 @@ func main() {
 	//  CORS для фронтенда
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
+			w.Header().Set("Access-Control-Allow-Origin", resolveAllowedOrigin(r.Header.Get("Origin"), corsOrigins))
+			w.Header().Set("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")

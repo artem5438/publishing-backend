@@ -1,0 +1,21 @@
+[
+  {
+    "AllowedOrigin": [
+      "https://artem5438.github.io",
+      "http://localhost",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://tauri.localhost",
+      "tauri://localhost",
+      "https://localhost",
+      "https://127.0.0.1",
+      "http://192.168.*",
+      "http://10.*",
+      "http://172.16.*"
+    ],
+    "AllowedMethod": ["GET", "HEAD"],
+    "AllowedHeader": ["*"],
+    "ExposeHeader": ["ETag", "Content-Length", "Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]

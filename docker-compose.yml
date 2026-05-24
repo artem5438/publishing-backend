@@ -8,8 +8,24 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:-https://artem5438.github.io,http://localhost,http://localhost:5173,http://127.0.0.1:5173,http://tauri.localhost,tauri://localhost,https://localhost,https://127.0.0.1}
     volumes:
       - minio_data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: /bin/sh
+    command: /scripts/minio-init.sh
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_BUCKET: publishing-media
+    volumes:
+      - ./scripts/minio-init.sh:/scripts/minio-init.sh:ro
 
   postgres:
     image: postgres:16-alpine
@@ -52,18 +68,23 @@ services:
       DB_NAME: lab2_db
       REDIS_ADDR: redis:6379
       JWT_SECRET: dev-jwt-secret-change-me
-      CORS_ORIGIN: http://localhost
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,tauri://localhost,http://tauri.localhost}
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin123
       MINIO_BUCKET: publishing-media
-      MINIO_PUBLIC_URL: http://localhost:9000/publishing-media
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000/publishing-media}
       MINIO_USE_SSL: "false"
       LOG_LEVEL: info
     depends_on:
-      - postgres
-      - redis
-      - minio
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
 
   frontend:
     build:
@@ -71,13 +92,14 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE: /api
-        VITE_MEDIA_BASE_URL: http://localhost:9000/publishing-media
+        VITE_MEDIA_BASE_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000/publishing-media}
     container_name: publishing_frontend_lab2
     restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
       - backend
+      - minio
 
   prometheus:
     image: prom/prometheus:latest
